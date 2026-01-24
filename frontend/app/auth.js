@@ -27,8 +27,7 @@ export default function AuthPage() {
       // Save to storage
       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
       await AsyncStorage.setItem('wallet_address', wallet.address);
-      await AsyncStorage.setItem('username', username.trim());
-      await AsyncStorage.setItem('user_email', `${username}@${provider}.com`);
+      await AsyncStorage.setItem('username', 'User');
       await AsyncStorage.setItem('is_logged_in', 'true');
       
       // Initialize demo balance
