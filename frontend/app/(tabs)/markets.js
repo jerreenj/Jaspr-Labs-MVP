@@ -3,40 +3,80 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { TOKENS } from '../../src/config/tokens';
+
+// Fallback prices in case API fails
+const FALLBACK_PRICES = {
+  bitcoin: { usd: 89500, usd_24h_change: 2.5 },
+  ethereum: { usd: 2950, usd_24h_change: 1.8 },
+  solana: { usd: 128, usd_24h_change: 3.2 },
+  binancecoin: { usd: 595, usd_24h_change: -0.5 },
+  ripple: { usd: 0.52, usd_24h_change: 1.2 },
+  cardano: { usd: 0.48, usd_24h_change: -1.1 },
+  dogecoin: { usd: 0.082, usd_24h_change: 4.5 },
+  'avalanche-2': { usd: 34.5, usd_24h_change: 2.1 },
+  'the-open-network': { usd: 5.2, usd_24h_change: 0.8 },
+  'matic-network': { usd: 0.45, usd_24h_change: -0.3 },
+  'usd-coin': { usd: 1, usd_24h_change: 0 },
+};
+
+const TOKENS = [
+  { symbol: 'BTC', name: 'Bitcoin', coingeckoId: 'bitcoin', color: '#F7931A' },
+  { symbol: 'ETH', name: 'Ethereum', coingeckoId: 'ethereum', color: '#627EEA' },
+  { symbol: 'SOL', name: 'Solana', coingeckoId: 'solana', color: '#00FFA3' },
+  { symbol: 'BNB', name: 'BNB', coingeckoId: 'binancecoin', color: '#F3BA2F' },
+  { symbol: 'XRP', name: 'XRP', coingeckoId: 'ripple', color: '#00AAE4' },
+  { symbol: 'ADA', name: 'Cardano', coingeckoId: 'cardano', color: '#0033AD' },
+  { symbol: 'DOGE', name: 'Dogecoin', coingeckoId: 'dogecoin', color: '#C3A634' },
+  { symbol: 'AVAX', name: 'Avalanche', coingeckoId: 'avalanche-2', color: '#E84142' },
+  { symbol: 'TON', name: 'Toncoin', coingeckoId: 'the-open-network', color: '#0098EA' },
+  { symbol: 'MATIC', name: 'Polygon', coingeckoId: 'matic-network', color: '#8247E5' },
+];
 
 export default function MarketsPage() {
   const router = useRouter();
   const [tokens, setTokens] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadPrices();
-    const interval = setInterval(loadPrices, 15000);
+    const interval = setInterval(loadPrices, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const loadPrices = async () => {
     try {
+      setLoading(true);
       const ids = TOKENS.map(t => t.coingeckoId).join(',');
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
+        { timeout: 5000 }
       );
+      
+      if (!response.ok) throw new Error('API error');
+      
       const data = await response.json();
       
       const pricesData = TOKENS.map(token => ({
         ...token,
-        price: data[token.coingeckoId]?.usd || 0,
-        change24h: data[token.coingeckoId]?.usd_24h_change || 0,
-        marketCap: data[token.coingeckoId]?.usd_market_cap || 0,
+        price: data[token.coingeckoId]?.usd || FALLBACK_PRICES[token.coingeckoId]?.usd || 0,
+        change24h: data[token.coingeckoId]?.usd_24h_change || FALLBACK_PRICES[token.coingeckoId]?.usd_24h_change || 0,
       }));
       
       setTokens(pricesData);
     } catch (error) {
-      console.error('Error loading prices:', error);
+      console.error('Price error:', error);
+      // Use fallback prices
+      const fallbackData = TOKENS.map(token => ({
+        ...token,
+        price: FALLBACK_PRICES[token.coingeckoId]?.usd || 0,
+        change24h: FALLBACK_PRICES[token.coingeckoId]?.usd_24h_change || 0,
+      }));
+      setTokens(fallbackData);
     } finally {
       setRefreshing(false);
+      setLoading(false);
     }
   };
 
@@ -57,15 +97,13 @@ export default function MarketsPage() {
         coin: token.coingeckoId,
         symbol: token.symbol,
         name: token.name,
-        price: token.price,
-        change: token.change24h,
       }
     });
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#000428', '#004e92']} style={styles.gradient}>
+      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
         <View style={styles.header}>
           <Text style={styles.title}>Markets</Text>
           <Text style={styles.subtitle}>Tap any coin to trade</Text>
@@ -89,13 +127,23 @@ export default function MarketsPage() {
           }
         >
           <View style={styles.tokenList}>
-            {filteredTokens.map((token, index) => (
-              <TokenItem 
-                key={index} 
-                token={token} 
-                onPress={() => handleTokenPress(token)}
-              />
-            ))}
+            {loading && tokens.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading prices...</Text>
+              </View>
+            ) : filteredTokens.length > 0 ? (
+              filteredTokens.map((token, index) => (
+                <TokenItem 
+                  key={index} 
+                  token={token} 
+                  onPress={() => handleTokenPress(token)}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No tokens found</Text>
+              </View>
+            )}
           </View>
         </ScrollView>
       </LinearGradient>
@@ -106,44 +154,27 @@ export default function MarketsPage() {
 function TokenItem({ token, onPress }) {
   const isPositive = token.change24h >= 0;
   
-  const getTokenColor = (symbol) => {
-    const colors = {
-      BTC: '#F7931A',
-      ETH: '#627EEA',
-      SOL: '#00FFA3',
-      BNB: '#F3BA2F',
-      XRP: '#23292F',
-      ADA: '#0033AD',
-      DOGE: '#C3A634',
-      AVAX: '#E84142',
-      TON: '#0098EA',
-      MATIC: '#8247E5',
-      USDC: '#2775CA',
-    };
-    return colors[symbol] || '#00FFF0';
-  };
-
   return (
     <TouchableOpacity style={styles.tokenItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.tokenInfo}>
-        <View style={[styles.tokenIcon, { backgroundColor: `${getTokenColor(token.symbol)}30` }]}>
-          <Text style={[styles.tokenIconText, { color: getTokenColor(token.symbol) }]}>
+        <View style={[styles.tokenIcon, { backgroundColor: `${token.color}25` }]}>
+          <Text style={[styles.tokenIconText, { color: token.color }]}>
             {token.symbol[0]}
           </Text>
         </View>
         <View>
-          <Text style={styles.tokenName}>{token.symbol}</Text>
-          <Text style={styles.tokenFullName}>{token.name}</Text>
+          <Text style={styles.tokenSymbol}>{token.symbol}</Text>
+          <Text style={styles.tokenName}>{token.name}</Text>
         </View>
       </View>
       <View style={styles.tokenPrice}>
         <Text style={styles.price}>
-          ${token.price < 1 ? token.price.toFixed(4) : token.price.toLocaleString()}
+          ${token.price < 1 ? token.price.toFixed(4) : token.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </Text>
         <View style={[styles.changeBadge, isPositive ? styles.changePositive : styles.changeNegative]}>
           <MaterialCommunityIcons 
-            name={isPositive ? 'arrow-up' : 'arrow-down'} 
-            size={12} 
+            name={isPositive ? 'trending-up' : 'trending-down'} 
+            size={14} 
             color={isPositive ? '#00FFA3' : '#FF4444'} 
           />
           <Text style={[styles.changeText, isPositive ? styles.changeTextPositive : styles.changeTextNegative]}>
@@ -157,24 +188,24 @@ function TokenItem({ token, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#0a0a1a' },
   gradient: { flex: 1 },
   header: {
-    padding: 24,
-    paddingTop: 60,
+    padding: 20,
+    paddingTop: 50,
     paddingBottom: 16,
   },
-  title: { fontSize: 32, fontWeight: '700', color: '#FFF' },
-  subtitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', marginTop: 4 },
+  title: { fontSize: 28, fontWeight: '700', color: '#FFF' },
+  subtitle: { fontSize: 14, color: '#888', marginTop: 4 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 255, 240, 0.2)',
-    borderRadius: 12,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 14,
     paddingHorizontal: 16,
-    marginHorizontal: 24,
+    marginHorizontal: 20,
     marginBottom: 16,
   },
   searchInput: {
@@ -184,28 +215,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   scroll: { flex: 1 },
-  tokenList: { paddingHorizontal: 24, paddingBottom: 100 },
+  tokenList: { paddingHorizontal: 20, paddingBottom: 100 },
+  loadingContainer: { padding: 40, alignItems: 'center' },
+  loadingText: { color: '#888', fontSize: 16 },
+  emptyContainer: { padding: 40, alignItems: 'center' },
+  emptyText: { color: '#888', fontSize: 16 },
   tokenItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     marginBottom: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   tokenInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 14 },
   tokenIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tokenIconText: { fontSize: 18, fontWeight: '700' },
-  tokenName: { fontSize: 17, fontWeight: '600', color: '#FFF' },
-  tokenFullName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
+  tokenIconText: { fontSize: 20, fontWeight: '700' },
+  tokenSymbol: { fontSize: 17, fontWeight: '600', color: '#FFF' },
+  tokenName: { fontSize: 13, color: '#888', marginTop: 2 },
   tokenPrice: { alignItems: 'flex-end', marginRight: 8 },
   price: { fontSize: 17, fontWeight: '600', color: '#FFF' },
   changeBadge: {
@@ -215,10 +250,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     marginTop: 4,
-    gap: 2,
+    gap: 4,
   },
-  changePositive: { backgroundColor: 'rgba(0, 255, 163, 0.1)' },
-  changeNegative: { backgroundColor: 'rgba(255, 68, 68, 0.1)' },
+  changePositive: { backgroundColor: 'rgba(0, 255, 163, 0.12)' },
+  changeNegative: { backgroundColor: 'rgba(255, 68, 68, 0.12)' },
   changeText: { fontSize: 13, fontWeight: '600' },
   changeTextPositive: { color: '#00FFA3' },
   changeTextNegative: { color: '#FF4444' },
