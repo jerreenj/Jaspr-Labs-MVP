@@ -34,6 +34,7 @@
     "react-native-gifted-charts": "^1.4.70",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.0",
+    "react-native-svg": "^15.15.1",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
