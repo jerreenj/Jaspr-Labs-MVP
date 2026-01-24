@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,19 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { createClient } from '@supabase/supabase-js';
-import * as WebBrowser from 'expo-web-browser';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://jaspr-swap.preview.emergentagent.com';
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthPage() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
 
@@ -43,38 +36,26 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      // Supabase Google OAuth
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'jaspr://auth/callback',
-        },
-      });
-
-      if (error) throw error;
-
-      // Wait for OAuth redirect
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        'jaspr://auth/callback'
-      );
-
-      if (result.type === 'success') {
-        await handleAuthSuccess('google');
-      }
+      // For demo: mock Google OAuth since Supabase needs setup
+      const mockEmail = 'user@google.com';
+      await handleAuthSuccess(mockEmail, 'google');
     } catch (error) {
       console.error('Google login error:', error);
-      Alert.alert('Error', 'Google login failed. Try email login.');
+      Alert.alert('Error', 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEmailLogin = async () => {
-    // Simple wallet creation for demo
+    if (!email || !email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email');
+      return;
+    }
+
     setLoading(true);
     try {
-      await handleAuthSuccess('email');
+      await handleAuthSuccess(email, 'email');
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert('Error', error.message || 'Failed to login');
@@ -83,7 +64,19 @@ export default function AuthPage() {
     }
   };
 
-  const handleAuthSuccess = async (provider) => {
+  const handleQuickStart = async () => {
+    setLoading(true);
+    try {
+      await handleAuthSuccess('user@jaspr.app', 'quick');
+    } catch (error) {
+      console.error('Quick start error:', error);
+      Alert.alert('Error', 'Failed to start');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = async (userEmail, provider) => {
     try {
       // Create or load wallet
       let wallet;
@@ -97,18 +90,22 @@ export default function AuthPage() {
       }
 
       await AsyncStorage.setItem('wallet_address', wallet.address);
-      const email = provider === 'google' ? 'user@google.com' : 'user@jaspr.app';
-      await AsyncStorage.setItem('user_email', email);
+      await AsyncStorage.setItem('user_email', userEmail);
 
       // Register user in backend
       await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-        email: email,
+        email: userEmail,
         wallet_address: wallet.address,
         provider: provider,
       });
 
       await AsyncStorage.setItem('is_logged_in', 'true');
-      router.replace('/(tabs)/home');
+      
+      Alert.alert(
+        'Welcome to JASPR! 🎉',
+        'Your wallet has been created.\n\nYou can now trade crypto on Base Sepolia!',
+        [{ text: 'Start Trading', onPress: () => router.replace('/(tabs)/home') }]
+      );
     } catch (error) {
       throw error;
     }
@@ -143,34 +140,62 @@ export default function AuthPage() {
 
         <View style={styles.buttons}>
           <TouchableOpacity 
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-            disabled={loading}
-          >
-            <View style={styles.googleInner}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="google" size={24} color="#fff" />
-                  <Text style={styles.buttonText}>Continue with Google</Text>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.emailButton}
-            onPress={handleEmailLogin}
+            style={styles.quickButton}
+            onPress={handleQuickStart}
             disabled={loading}
           >
             <LinearGradient
               colors={['#00d4ff', '#0099cc']}
               style={styles.buttonGradient}
             >
-              <MaterialCommunityIcons name="wallet" size={24} color="#fff" />
-              <Text style={styles.buttonText}>Quick Start</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="flash" size={24} color="#fff" />
+                  <Text style={styles.buttonText}>Quick Start</Text>
+                </>
+              )}
             </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your email"
+            placeholderTextColor="#666"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!loading}
+          />
+
+          <TouchableOpacity 
+            style={styles.emailButton}
+            onPress={handleEmailLogin}
+            disabled={loading || !email}
+          >
+            <View style={styles.emailInner}>
+              <MaterialCommunityIcons name="email" size={24} color="#fff" />
+              <Text style={styles.buttonText}>Continue with Email</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <View style={styles.googleInner}>
+              <MaterialCommunityIcons name="google" size={24} color="#fff" />
+              <Text style={styles.buttonText}>Continue with Google</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -203,7 +228,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   title: {
     fontSize: 32,
@@ -219,6 +244,45 @@ const styles = StyleSheet.create({
   buttons: {
     gap: 16,
   },
+  quickButton: {
+    width: '100%',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    color: '#666',
+    paddingHorizontal: 16,
+    fontSize: 12,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderRadius: 12,
+    padding: 16,
+    color: '#fff',
+    fontSize: 16,
+  },
+  emailButton: {
+    width: '100%',
+  },
+  emailInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    backgroundColor: '#6366f1',
+  },
   googleButton: {
     width: '100%',
   },
@@ -230,9 +294,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     backgroundColor: '#4285f4',
-  },
-  emailButton: {
-    width: '100%',
   },
   buttonGradient: {
     flexDirection: 'row',
@@ -253,7 +314,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 212, 255, 0.1)',
     padding: 16,
     borderRadius: 12,
-    marginTop: 32,
+    marginTop: 24,
     gap: 12,
   },
   infoText: {
