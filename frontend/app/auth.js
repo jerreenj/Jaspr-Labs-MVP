@@ -196,13 +196,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     letterSpacing: 1,
   },
-  labsText: {
-    fontSize: 16,
-    fontWeight: '300',
-    color: '#00FFF0',
-    letterSpacing: 5,
-    marginTop: 4,
-  },
   subtitle: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
