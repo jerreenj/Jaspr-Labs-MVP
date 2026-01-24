@@ -4,12 +4,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Clipboard from 'expo-clipboard';
 
 export default function HomePage() {
   const router = useRouter();
-  const [walletAddress, setWalletAddress] = useState('');
-  const [username, setUsername] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [totalValue, setTotalValue] = useState(10000);
   const [holdings, setHoldings] = useState({
@@ -28,9 +25,6 @@ export default function HomePage() {
 
   const loadUserData = useCallback(async () => {
     try {
-      const address = await AsyncStorage.getItem('wallet_address');
-      const savedUsername = await AsyncStorage.getItem('username');
-      
       // Load demo balance
       const demoBalance = await AsyncStorage.getItem('demo_balance');
       const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
@@ -63,9 +57,6 @@ export default function HomePage() {
         ETH: tokenHoldings.ETH || 0,
         BTC: tokenHoldings.BTC || 0,
       });
-      
-      setWalletAddress(address || '');
-      setUsername(savedUsername || 'User');
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -76,11 +67,6 @@ export default function HomePage() {
   const onRefresh = () => {
     setRefreshing(true);
     loadUserData();
-  };
-
-  const copyAddress = async () => {
-    await Clipboard.setStringAsync(walletAddress);
-    Alert.alert('Copied!', 'Address copied to clipboard');
   };
 
   const handleLogout = async () => {
@@ -101,13 +87,14 @@ export default function HomePage() {
     );
   };
 
-  // Format large numbers with commas
   const formatValue = (value) => {
     return value.toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     });
   };
+
+  const hasHoldings = holdings.USDC > 0 || holdings.ETH > 0 || holdings.BTC > 0;
 
   return (
     <View style={styles.container}>
@@ -123,10 +110,7 @@ export default function HomePage() {
         >
           <View style={styles.content}>
             <View style={styles.header}>
-              <View>
-                <Text style={styles.greeting}>Welcome back</Text>
-                <Text style={styles.username}>{username}</Text>
-              </View>
+              <Text style={styles.greeting}>Welcome</Text>
               <TouchableOpacity onPress={handleLogout}>
                 <MaterialCommunityIcons name="logout" size={24} color="#FF4444" />
               </TouchableOpacity>
@@ -134,82 +118,76 @@ export default function HomePage() {
 
             {/* Total Portfolio Value */}
             <View style={styles.balanceCard}>
-              <Text style={styles.balanceLabel}>Total Portfolio Value</Text>
+              <Text style={styles.balanceLabel}>Portfolio Value</Text>
               <Text style={styles.balance}>${formatValue(totalValue)}</Text>
-              <Text style={styles.balanceSubtext}>Base Sepolia Testnet</Text>
+              <Text style={styles.balanceSubtext}>Demo Account • Base Sepolia</Text>
             </View>
 
-            {/* Token Holdings */}
-            <Text style={styles.sectionTitle}>Holdings</Text>
-            <View style={styles.holdingsContainer}>
-              <HoldingItem 
-                symbol="USDC" 
-                name="USD Coin" 
-                balance={holdings.USDC}
-                value={holdings.USDC}
-                color="#2775CA"
-              />
-              {holdings.ETH > 0 && (
-                <HoldingItem 
-                  symbol="ETH" 
-                  name="Ethereum" 
-                  balance={holdings.ETH}
-                  value={holdings.ETH * prices.ETH}
-                  price={prices.ETH}
-                  color="#627EEA"
-                />
-              )}
-              {holdings.BTC > 0 && (
-                <HoldingItem 
-                  symbol="BTC" 
-                  name="Bitcoin" 
-                  balance={holdings.BTC}
-                  value={holdings.BTC * prices.BTC}
-                  price={prices.BTC}
-                  color="#F7931A"
-                />
-              )}
-            </View>
-
-            {/* Wallet Card */}
-            <View style={styles.walletCard}>
-              <View style={styles.cardHeader}>
-                <MaterialCommunityIcons name="wallet" size={20} color="#00FFF0" />
-                <Text style={styles.cardTitle}>Wallet Address</Text>
+            {/* Portfolio Holdings */}
+            <Text style={styles.sectionTitle}>Portfolio</Text>
+            {hasHoldings ? (
+              <View style={styles.holdingsContainer}>
+                {holdings.USDC > 0 && (
+                  <HoldingItem 
+                    symbol="USDC" 
+                    name="USD Coin" 
+                    balance={holdings.USDC}
+                    value={holdings.USDC}
+                    color="#2775CA"
+                    onPress={() => router.push('/(tabs)/markets')}
+                  />
+                )}
+                {holdings.ETH > 0 && (
+                  <HoldingItem 
+                    symbol="ETH" 
+                    name="Ethereum" 
+                    balance={holdings.ETH}
+                    value={holdings.ETH * prices.ETH}
+                    price={prices.ETH}
+                    change="+2.4%"
+                    color="#627EEA"
+                    onPress={() => router.push({ pathname: '/(tabs)/trade', params: { coin: 'ethereum' }})}
+                  />
+                )}
+                {holdings.BTC > 0 && (
+                  <HoldingItem 
+                    symbol="BTC" 
+                    name="Bitcoin" 
+                    balance={holdings.BTC}
+                    value={holdings.BTC * prices.BTC}
+                    price={prices.BTC}
+                    change="+1.2%"
+                    color="#F7931A"
+                    onPress={() => router.push({ pathname: '/(tabs)/trade', params: { coin: 'bitcoin' }})}
+                  />
+                )}
               </View>
-              <TouchableOpacity onPress={copyAddress} style={styles.addressRow}>
-                <Text style={styles.address} numberOfLines={1}>
-                  {walletAddress ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-10)}` : 'Loading...'}
+            ) : (
+              <View style={styles.emptyPortfolio}>
+                <MaterialCommunityIcons name="chart-line" size={48} color="#333" />
+                <Text style={styles.emptyTitle}>No tokens yet</Text>
+                <Text style={styles.emptySubtext}>Go to Markets to start trading</Text>
+                <TouchableOpacity 
+                  style={styles.emptyButton}
+                  onPress={() => router.push('/(tabs)/markets')}
+                >
+                  <Text style={styles.emptyButtonText}>Browse Markets</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Quick Stats */}
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Assets</Text>
+                <Text style={styles.statValue}>
+                  {[holdings.USDC > 0, holdings.ETH > 0, holdings.BTC > 0].filter(Boolean).length}
                 </Text>
-                <MaterialCommunityIcons name="content-copy" size={18} color="#00FFF0" />
-              </TouchableOpacity>
-              <View style={styles.networkBadge}>
-                <View style={styles.dot} />
-                <Text style={styles.networkText}>Base Sepolia Testnet</Text>
               </View>
-            </View>
-
-            {/* Quick Actions */}
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.quickActions}>
-              <QuickAction 
-                icon="chart-line" 
-                label="Markets" 
-                color="#00FFF0"
-                onPress={() => router.push('/(tabs)/markets')} 
-              />
-              <QuickAction 
-                icon="swap-horizontal" 
-                label="Swap" 
-                color="#00B8D4"
-                onPress={() => router.push('/(tabs)/swap')} 
-              />
-              <QuickAction 
-                icon="currency-usd" 
-                label="Trade" 
-                color="#0091EA"
-                onPress={() => router.push('/(tabs)/trade')} 
-              />
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Network</Text>
+                <Text style={[styles.statValue, { color: '#00FFF0', fontSize: 14 }]}>Base Sepolia</Text>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -218,9 +196,9 @@ export default function HomePage() {
   );
 }
 
-function HoldingItem({ symbol, name, balance, value, price, color }) {
+function HoldingItem({ symbol, name, balance, value, price, change, color, onPress }) {
   return (
-    <View style={styles.holdingItem}>
+    <TouchableOpacity style={styles.holdingItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.holdingLeft}>
         <View style={[styles.tokenIcon, { backgroundColor: `${color}30` }]}>
           <Text style={[styles.tokenIconText, { color }]}>{symbol[0]}</Text>
@@ -236,17 +214,6 @@ function HoldingItem({ symbol, name, balance, value, price, color }) {
         </Text>
         <Text style={styles.holdingValue}>${value.toFixed(2)}</Text>
       </View>
-    </View>
-  );
-}
-
-function QuickAction({ icon, label, color, onPress }) {
-  return (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}>
-        <MaterialCommunityIcons name={icon} size={28} color={color} />
-      </View>
-      <Text style={styles.actionLabel}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -262,28 +229,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  greeting: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
-  username: { fontSize: 28, fontWeight: '700', color: '#FFF', marginTop: 4 },
+  greeting: { fontSize: 32, fontWeight: '700', color: '#FFF' },
   balanceCard: {
     backgroundColor: 'rgba(0, 255, 240, 0.05)',
     borderRadius: 20,
     padding: 32,
-    marginBottom: 24,
+    marginBottom: 28,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0, 255, 240, 0.2)',
   },
   balanceLabel: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '500' },
-  balance: { fontSize: 48, fontWeight: '700', color: '#FFF', marginTop: 8 },
+  balance: { fontSize: 44, fontWeight: '700', color: '#FFF', marginTop: 8 },
   balanceSubtext: { fontSize: 14, color: '#00FFF0', marginTop: 8 },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#FFF',
     marginBottom: 16,
   },
   holdingsContainer: {
-    gap: 8,
+    gap: 10,
     marginBottom: 24,
   },
   holdingItem: {
@@ -291,7 +257,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -299,83 +265,56 @@ const styles = StyleSheet.create({
   holdingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   tokenIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   tokenIconText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
   },
-  holdingSymbol: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-  holdingName: { fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
+  holdingSymbol: { fontSize: 17, fontWeight: '600', color: '#FFF' },
+  holdingName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
   holdingRight: {
     alignItems: 'flex-end',
   },
-  holdingBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-  holdingValue: { fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
-  walletCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  holdingBalance: { fontSize: 17, fontWeight: '600', color: '#FFF' },
+  holdingValue: { fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
+  emptyPortfolio: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 16,
-    padding: 20,
+    padding: 40,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  cardTitle: { fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '500' },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 12,
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#666', marginTop: 16 },
+  emptySubtext: { fontSize: 14, color: '#444', marginTop: 8 },
+  emptyButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(0, 255, 240, 0.1)',
     borderRadius: 8,
-    marginBottom: 12,
   },
-  address: { fontSize: 13, color: '#FFF', fontFamily: 'monospace', flex: 1 },
-  networkBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#00FFF0',
-  },
-  networkText: { fontSize: 12, color: '#00FFF0', fontWeight: '500' },
-  quickActions: {
+  emptyButtonText: { color: '#00FFF0', fontWeight: '600' },
+  statsRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  actionButton: {
+  statCard: {
     flex: 1,
-    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionLabel: { fontSize: 14, color: '#FFF', fontWeight: '600' },
+  statLabel: { fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 4 },
+  statValue: { fontSize: 20, fontWeight: '700', color: '#FFF' },
 });

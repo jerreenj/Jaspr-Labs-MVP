@@ -2,40 +2,143 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TradePage() {
-  const [mode, setMode] = useState('BUY'); // BUY or SELL
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
+  const [mode, setMode] = useState('BUY');
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('card'); // card, bank, crypto
   const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState(10000);
+  const [tokenHolding, setTokenHolding] = useState(0);
+  const [price, setPrice] = useState(0);
+  
+  const coinId = params.coin || 'bitcoin';
+  const symbol = params.symbol || 'BTC';
+  const name = params.name || 'Bitcoin';
 
-  const handleTrade = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Enter valid amount');
-      return;
+  useEffect(() => {
+    loadData();
+  }, [coinId]);
+
+  const loadData = async () => {
+    try {
+      // Load balance
+      const demoBalance = await AsyncStorage.getItem('demo_balance');
+      setBalance(demoBalance ? parseFloat(demoBalance) : 10000);
+      
+      // Load holdings
+      const holdings = await AsyncStorage.getItem('token_holdings');
+      const tokenHoldings = holdings ? JSON.parse(holdings) : {};
+      setTokenHolding(tokenHoldings[symbol] || 0);
+      
+      // Fetch price
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`
+      );
+      const data = await response.json();
+      setPrice(data[coinId]?.usd || 0);
+    } catch (error) {
+      console.error('Load error:', error);
     }
+  };
 
-    Alert.alert(
-      `${mode} Crypto`,
-      `${mode} $${amount} worth of ETH\n\nPayment: ${paymentMethod === 'card' ? 'Credit Card' : paymentMethod === 'bank' ? 'Bank Transfer' : 'Crypto'}\n\nProceed?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', onPress: () => executeTrade() },
-      ]
-    );
+  const getTokenColor = () => {
+    const colors = {
+      BTC: '#F7931A',
+      ETH: '#627EEA',
+      SOL: '#00FFA3',
+      BNB: '#F3BA2F',
+      XRP: '#23292F',
+      ADA: '#0033AD',
+      DOGE: '#C3A634',
+      AVAX: '#E84142',
+    };
+    return colors[symbol] || '#00FFF0';
+  };
+
+  const calculateTokenAmount = () => {
+    if (!amount || !price) return '0';
+    const usdAmount = parseFloat(amount);
+    return (usdAmount / price).toFixed(8);
+  };
+
+  const calculateUsdValue = () => {
+    if (!amount || !price) return '0';
+    const tokenAmount = parseFloat(amount);
+    return (tokenAmount * price).toFixed(2);
   };
 
   const executeTrade = async () => {
-    setLoading(true);
-    try {
-      // Simulate on/off ramp
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    const inputAmount = parseFloat(amount);
+    if (!amount || inputAmount <= 0) {
+      Alert.alert('Error', 'Enter a valid amount');
+      return;
+    }
 
+    if (mode === 'BUY') {
+      if (inputAmount > balance) {
+        Alert.alert('Insufficient Balance', 'You don\'t have enough USDC');
+        return;
+      }
+    } else {
+      const sellAmount = inputAmount;
+      if (sellAmount > tokenHolding) {
+        Alert.alert('Insufficient Balance', `You don't have enough ${symbol}`);
+        return;
+      }
+    }
+
+    setLoading(true);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const holdings = await AsyncStorage.getItem('token_holdings');
+      const tokenHoldings = holdings ? JSON.parse(holdings) : {};
+      
+      let newBalance = balance;
+      let newHolding = tokenHoldings[symbol] || 0;
+      
+      if (mode === 'BUY') {
+        const tokenAmount = inputAmount / price;
+        newBalance = balance - inputAmount;
+        newHolding = (tokenHoldings[symbol] || 0) + tokenAmount;
+      } else {
+        const usdValue = inputAmount * price;
+        newBalance = balance + usdValue;
+        newHolding = (tokenHoldings[symbol] || 0) - inputAmount;
+      }
+      
+      // Save
+      await AsyncStorage.setItem('demo_balance', newBalance.toString());
+      tokenHoldings[symbol] = newHolding;
+      await AsyncStorage.setItem('token_holdings', JSON.stringify(tokenHoldings));
+      
+      // Save to history
+      const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
+      history.unshift({
+        type: mode.toLowerCase(),
+        symbol,
+        amount: amount,
+        price,
+        timestamp: Date.now(),
+        txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+      });
+      await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
+      
+      setBalance(newBalance);
+      setTokenHolding(newHolding);
+      
       Alert.alert(
-        'Trade Successful! 🎉',
-        `${mode === 'BUY' ? 'Purchased' : 'Sold'} $${amount} worth of ETH\n\nThis is a demo. Real on/off ramp requires KYC.`,
-        [{ text: 'OK', onPress: () => setAmount('') }]
+        `${mode} Successful! 🎉`,
+        mode === 'BUY' 
+          ? `Bought ${calculateTokenAmount()} ${symbol} for $${amount}`
+          : `Sold ${amount} ${symbol} for $${calculateUsdValue()}`,
+        [{ text: 'Done', onPress: () => setAmount('') }]
       );
     } catch (error) {
       Alert.alert('Error', 'Trade failed');
@@ -45,192 +148,237 @@ export default function TradePage() {
   };
 
   return (
-    <LinearGradient
-      colors={['#0f0f23', '#1a1a3e', '#2d2d5f']}
-      style={styles.container}
-    >
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>On/Off Ramp</Text>
-        <Text style={styles.subtitle}>Buy or sell crypto with fiat</Text>
+    <View style={styles.container}>
+      <LinearGradient colors={['#000428', '#004e92']} style={styles.gradient}>
+        <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+              </TouchableOpacity>
+              <View style={styles.headerCenter}>
+                <View style={[styles.tokenIconLarge, { backgroundColor: `${getTokenColor()}30` }]}>
+                  <Text style={[styles.tokenIconText, { color: getTokenColor() }]}>{symbol[0]}</Text>
+                </View>
+                <Text style={styles.headerTitle}>{name}</Text>
+                <Text style={styles.headerSymbol}>{symbol}</Text>
+              </View>
+              <View style={{ width: 40 }} />
+            </View>
 
-        <View style={styles.modeSelector}>
-          <TouchableOpacity 
-            style={[styles.modeButton, mode === 'BUY' && styles.modeButtonActive]}
-            onPress={() => setMode('BUY')}
-          >
-            <Text style={[styles.modeText, mode === 'BUY' && styles.modeTextActive]}>BUY</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.modeButton, mode === 'SELL' && styles.modeButtonActive]}
-            onPress={() => setMode('SELL')}
-          >
-            <Text style={[styles.modeText, mode === 'SELL' && styles.modeTextActive]}>SELL</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Price Card */}
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>Current Price</Text>
+              <Text style={styles.priceValue}>
+                ${price < 1 ? price.toFixed(4) : price.toLocaleString()}
+              </Text>
+            </View>
 
-        <View style={styles.card}>
-          <Text style={styles.label}>Amount (USD)</Text>
-          <View style={styles.amountRow}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0.00"
-              placeholderTextColor="#666"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
-          </View>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="information" size={16} color="#888" />
-            <Text style={styles.infoText}>≈ {amount ? (parseFloat(amount) / 3000).toFixed(6) : '0.00'} ETH</Text>
-          </View>
-        </View>
+            {/* Balance Info */}
+            <View style={styles.balanceRow}>
+              <View style={styles.balanceItem}>
+                <Text style={styles.balanceLabel}>USDC Balance</Text>
+                <Text style={styles.balanceValue}>${balance.toFixed(2)}</Text>
+              </View>
+              <View style={styles.balanceItem}>
+                <Text style={styles.balanceLabel}>{symbol} Holding</Text>
+                <Text style={styles.balanceValue}>{tokenHolding.toFixed(6)}</Text>
+              </View>
+            </View>
 
-        <View style={styles.card}>
-          <Text style={styles.label}>Payment Method</Text>
-          <View style={styles.methodRow}>
-            <TouchableOpacity
-              style={[styles.methodButton, paymentMethod === 'card' && styles.methodButtonActive]}
-              onPress={() => setPaymentMethod('card')}
+            {/* Buy/Sell Toggle */}
+            <View style={styles.modeSelector}>
+              <TouchableOpacity 
+                style={[styles.modeButton, mode === 'BUY' && styles.modeBuyActive]}
+                onPress={() => setMode('BUY')}
+              >
+                <Text style={[styles.modeText, mode === 'BUY' && styles.modeTextActive]}>BUY</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modeButton, mode === 'SELL' && styles.modeSellActive]}
+                onPress={() => setMode('SELL')}
+              >
+                <Text style={[styles.modeText, mode === 'SELL' && styles.modeTextActive]}>SELL</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Amount Input */}
+            <View style={styles.inputCard}>
+              <Text style={styles.inputLabel}>
+                {mode === 'BUY' ? 'Amount (USD)' : `Amount (${symbol})`}
+              </Text>
+              <View style={styles.inputRow}>
+                {mode === 'BUY' && <Text style={styles.inputPrefix}>$</Text>}
+                <TextInput
+                  style={styles.input}
+                  placeholder="0.00"
+                  placeholderTextColor="#666"
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <Text style={styles.inputHint}>
+                {mode === 'BUY' 
+                  ? `≈ ${calculateTokenAmount()} ${symbol}`
+                  : `≈ $${calculateUsdValue()}`
+                }
+              </Text>
+            </View>
+
+            {/* Quick Amounts */}
+            <View style={styles.quickAmounts}>
+              {mode === 'BUY' ? (
+                ['100', '500', '1000', '2500'].map((val) => (
+                  <TouchableOpacity 
+                    key={val} 
+                    style={styles.quickBtn}
+                    onPress={() => setAmount(val)}
+                  >
+                    <Text style={styles.quickBtnText}>${val}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                ['25%', '50%', '75%', 'MAX'].map((val, i) => (
+                  <TouchableOpacity 
+                    key={val} 
+                    style={styles.quickBtn}
+                    onPress={() => {
+                      const pct = [0.25, 0.5, 0.75, 1][i];
+                      setAmount((tokenHolding * pct).toFixed(6));
+                    }}
+                  >
+                    <Text style={styles.quickBtnText}>{val}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+
+            {/* Trade Button */}
+            <TouchableOpacity 
+              style={[styles.tradeButton, loading && styles.tradeButtonDisabled]} 
+              onPress={executeTrade}
+              disabled={loading || !amount}
             >
-              <MaterialCommunityIcons name="credit-card" size={24} color={paymentMethod === 'card' ? '#00d4ff' : '#888'} />
-              <Text style={[styles.methodText, paymentMethod === 'card' && styles.methodTextActive]}>Card</Text>
+              <LinearGradient
+                colors={mode === 'BUY' ? ['#00FFA3', '#00CC82'] : ['#FF4444', '#CC0000']}
+                style={styles.tradeButtonGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.tradeButtonText}>
+                    {mode} {symbol}
+                  </Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.methodButton, paymentMethod === 'bank' && styles.methodButtonActive]}
-              onPress={() => setPaymentMethod('bank')}
-            >
-              <MaterialCommunityIcons name="bank" size={24} color={paymentMethod === 'bank' ? '#00d4ff' : '#888'} />
-              <Text style={[styles.methodText, paymentMethod === 'bank' && styles.methodTextActive]}>Bank</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.methodButton, paymentMethod === 'crypto' && styles.methodButtonActive]}
-              onPress={() => setPaymentMethod('crypto')}
-            >
-              <MaterialCommunityIcons name="bitcoin" size={24} color={paymentMethod === 'crypto' ? '#00d4ff' : '#888'} />
-              <Text style={[styles.methodText, paymentMethod === 'crypto' && styles.methodTextActive]}>Crypto</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
-        <View style={styles.feeCard}>
-          <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>Network Fee</Text>
-            <Text style={styles.feeValue}>$0.50</Text>
+            {/* Info Banner */}
+            <View style={styles.infoBanner}>
+              <MaterialCommunityIcons name="information" size={18} color="#00FFF0" />
+              <Text style={styles.infoBannerText}>
+                Demo trading on Base Sepolia testnet. No real funds.
+              </Text>
+            </View>
           </View>
-          <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>Processing Fee (1%)</Text>
-            <Text style={styles.feeValue}>${amount ? (parseFloat(amount) * 0.01).toFixed(2) : '0.00'}</Text>
-          </View>
-          <View style={[styles.feeRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>${amount ? (parseFloat(amount) + parseFloat(amount) * 0.01 + 0.50).toFixed(2) : '0.00'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.banner}>
-          <MaterialCommunityIcons name="shield-alert" size={20} color="#ff9800" />
-          <Text style={styles.bannerText}>
-            Demo only. Real on/off ramp requires KYC verification.
-          </Text>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.tradeButton} 
-          onPress={handleTrade}
-          disabled={loading}
-        >
-          <LinearGradient
-            colors={mode === 'BUY' ? ['#00d4ff', '#0099cc'] : ['#ff4444', '#cc0000']}
-            style={styles.buttonGradient}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>{mode} Crypto</Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
+  gradient: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: 24, paddingTop: 60 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#888', marginBottom: 24 },
-  modeSelector: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  modeButton: {
+  content: { padding: 24, paddingTop: 60, paddingBottom: 100 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  backBtn: { padding: 8 },
+  headerCenter: { alignItems: 'center' },
+  tokenIconLarge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tokenIconText: { fontSize: 24, fontWeight: '700' },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFF' },
+  headerSymbol: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  priceCard: {
+    backgroundColor: 'rgba(0, 255, 240, 0.05)',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 240, 0.2)',
+  },
+  priceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  priceValue: { fontSize: 36, fontWeight: '700', color: '#FFF', marginTop: 4 },
+  balanceRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  balanceItem: {
     flex: 1,
-    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 14,
     alignItems: 'center',
   },
-  modeButtonActive: {
-    backgroundColor: 'rgba(0, 212, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: '#00d4ff',
+  balanceLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  balanceValue: { fontSize: 16, fontWeight: '600', color: '#FFF', marginTop: 4 },
+  modeSelector: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
   },
-  modeText: { fontSize: 16, fontWeight: 'bold', color: '#888' },
-  modeTextActive: { color: '#00d4ff' },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  modeBuyActive: { backgroundColor: 'rgba(0, 255, 163, 0.2)', borderWidth: 1, borderColor: '#00FFA3' },
+  modeSellActive: { backgroundColor: 'rgba(255, 68, 68, 0.2)', borderWidth: 1, borderColor: '#FF4444' },
+  modeText: { fontSize: 16, fontWeight: '700', color: '#888' },
+  modeTextActive: { color: '#FFF' },
+  inputCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.1)',
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  label: { fontSize: 14, color: '#888', marginBottom: 12 },
-  amountRow: { flexDirection: 'row', alignItems: 'center' },
-  currencySymbol: { fontSize: 32, color: '#00d4ff', fontWeight: 'bold', marginRight: 8 },
-  input: { flex: 1, fontSize: 32, color: '#fff', fontWeight: 'bold' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 6 },
-  infoText: { fontSize: 14, color: '#888' },
-  methodRow: { flexDirection: 'row', gap: 12 },
-  methodButton: {
+  inputLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 12 },
+  inputRow: { flexDirection: 'row', alignItems: 'center' },
+  inputPrefix: { fontSize: 32, fontWeight: '700', color: '#00FFF0', marginRight: 4 },
+  input: { flex: 1, fontSize: 32, fontWeight: '700', color: '#FFF' },
+  inputHint: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 12 },
+  quickAmounts: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  quickBtn: {
     flex: 1,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
     alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  methodButtonActive: {
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: '#00d4ff',
-  },
-  methodText: { fontSize: 12, color: '#888', marginTop: 8 },
-  methodTextActive: { color: '#00d4ff' },
-  feeCard: {
-    backgroundColor: 'rgba(0, 212, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    gap: 12,
-  },
-  feeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  feeLabel: { fontSize: 14, color: '#888' },
-  feeValue: { fontSize: 14, color: '#fff' },
-  totalRow: { borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.1)', paddingTop: 12, marginTop: 4 },
-  totalLabel: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  totalValue: { fontSize: 16, fontWeight: 'bold', color: '#00d4ff' },
-  banner: {
+  quickBtnText: { fontSize: 14, color: '#00FFF0', fontWeight: '600' },
+  tradeButton: { borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
+  tradeButtonDisabled: { opacity: 0.6 },
+  tradeButtonGradient: { paddingVertical: 18, alignItems: 'center' },
+  tradeButtonText: { fontSize: 18, fontWeight: '700', color: '#FFF' },
+  infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 24,
-    gap: 8,
+    backgroundColor: 'rgba(0, 255, 240, 0.05)',
+    padding: 14,
+    borderRadius: 10,
+    gap: 10,
   },
-  bannerText: { flex: 1, color: '#ff9800', fontSize: 12 },
-  tradeButton: { width: '100%' },
-  buttonGradient: { paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  infoBannerText: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.7)' },
 });
