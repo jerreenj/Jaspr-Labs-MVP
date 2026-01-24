@@ -18,8 +18,7 @@ export default function LandingPage() {
               <MaterialCommunityIcons name="wallet" size={64} color="#00FFF0" />
             </View>
             <Text style={styles.logoText}>Jaspr</Text>
-            <Text style={styles.labsText}>Labs</Text>
-            <Text style={styles.tagline}>Professional Crypto Trading</Text>
+            <Text style={styles.tagline}>CEX Features & DEX Freedom</Text>
           </View>
 
           <View style={styles.features}>
@@ -80,22 +79,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoText: {
-    fontSize: 48,
+    fontSize: 56,
     fontWeight: '700',
     color: '#FFF',
-    letterSpacing: 1,
-  },
-  labsText: {
-    fontSize: 18,
-    fontWeight: '300',
-    color: '#00FFF0',
-    letterSpacing: 6,
-    marginTop: 4,
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   tagline: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 16,
+    color: '#00FFF0',
+    textAlign: 'center',
   },
   features: {
     flexDirection: 'row',

@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import 'react-native-get-random-values';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,10 +10,23 @@ import { ethers } from 'ethers';
 export default function AuthPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showUsernameInput, setShowUsernameInput] = useState(false);
+  const [username, setUsername] = useState('');
+  const [provider, setProvider] = useState('');
 
-  const createWalletAndLogin = async (provider) => {
+  const handleLoginClick = (loginProvider) => {
+    setProvider(loginProvider);
+    setShowUsernameInput(true);
+  };
+
+  const createWalletAndLogin = async () => {
+    if (!username.trim()) {
+      Alert.alert('Error', 'Please enter a username');
+      return;
+    }
+
     setLoading(true);
-    console.log(`[AUTH] Starting ${provider} login...`);
+    console.log(`[AUTH] Starting ${provider} login with username: ${username}`);
     
     try {
       // Create wallet
@@ -23,8 +37,13 @@ export default function AuthPage() {
       // Save to storage
       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
       await AsyncStorage.setItem('wallet_address', wallet.address);
-      await AsyncStorage.setItem('user_email', `user@${provider}.com`);
+      await AsyncStorage.setItem('username', username.trim());
+      await AsyncStorage.setItem('user_email', `${username}@${provider}.com`);
       await AsyncStorage.setItem('is_logged_in', 'true');
+      
+      // Initialize demo balance
+      await AsyncStorage.setItem('demo_balance', '10000');
+      
       console.log('[AUTH] Saved to storage');
       
       // Navigate immediately
@@ -44,69 +63,104 @@ export default function AuthPage() {
         colors={['#000428', '#004e92']}
         style={styles.gradient}
       >
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
         >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => showUsernameInput ? setShowUsernameInput(false) : router.back()}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+          </TouchableOpacity>
 
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <View style={styles.iconWrapper}>
-              <MaterialCommunityIcons name="wallet" size={48} color="#00FFF0" />
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.iconWrapper}>
+                <MaterialCommunityIcons name="wallet" size={48} color="#00FFF0" />
+              </View>
+              <Text style={styles.title}>Jaspr</Text>
+              <Text style={styles.labsText}>Labs</Text>
+              {showUsernameInput ? (
+                <Text style={styles.subtitle}>Choose your username</Text>
+              ) : (
+                <Text style={styles.subtitle}>Choose how to connect</Text>
+              )}
             </View>
-            <Text style={styles.title}>Jaspr</Text>
-            <Text style={styles.labsText}>Labs</Text>
-            <Text style={styles.subtitle}>Choose how to connect</Text>
-          </View>
 
-          <View style={styles.buttons}>
-            <TouchableOpacity 
-              style={styles.button}
-              onPress={() => createWalletAndLogin('quick')}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#00FFF0', '#00B8D4']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={styles.buttonGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#000" />
-                ) : (
-                  <>
+            {showUsernameInput ? (
+              <View style={styles.usernameForm}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter username"
+                  placeholderTextColor="#666"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoFocus={true}
+                />
+                <TouchableOpacity 
+                  style={styles.button}
+                  onPress={createWalletAndLogin}
+                  disabled={loading || !username.trim()}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#00FFF0', '#00B8D4']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={styles.buttonGradient}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#000" />
+                    ) : (
+                      <Text style={styles.buttonTextPrimary}>Create Wallet</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.buttons}>
+                <TouchableOpacity 
+                  style={styles.button}
+                  onPress={() => handleLoginClick('jaspr')}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#00FFF0', '#00B8D4']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={styles.buttonGradient}
+                  >
                     <MaterialCommunityIcons name="flash" size={24} color="#000" />
                     <Text style={styles.buttonTextPrimary}>Quick Start</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                  </LinearGradient>
+                </TouchableOpacity>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.buttonSecondary}
+                  onPress={() => handleLoginClick('google')}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons name="google" size={24} color="#FFF" />
+                  <Text style={styles.buttonTextSecondary}>Continue with Google</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={styles.info}>
+              <MaterialCommunityIcons name="shield-check" size={18} color="#00FFF0" />
+              <Text style={styles.infoText}>Secure wallet • $10,000 demo balance</Text>
             </View>
-
-            <TouchableOpacity 
-              style={styles.buttonSecondary}
-              onPress={() => createWalletAndLogin('google')}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="google" size={24} color="#FFF" />
-              <Text style={styles.buttonTextSecondary}>Continue with Google</Text>
-            </TouchableOpacity>
           </View>
-
-          <View style={styles.info}>
-            <MaterialCommunityIcons name="shield-check" size={18} color="#00FFF0" />
-            <Text style={styles.infoText}>Secure wallet created instantly</Text>
-          </View>
-        </View>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </View>
   );
@@ -115,6 +169,7 @@ export default function AuthPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   gradient: { flex: 1 },
+  keyboardView: { flex: 1 },
   backButton: {
     position: 'absolute',
     top: 60,
@@ -153,6 +208,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 16,
+  },
+  usernameForm: {
+    gap: 16,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 240, 0.3)',
+    borderRadius: 12,
+    padding: 18,
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '500',
   },
   buttons: {
     gap: 16,
