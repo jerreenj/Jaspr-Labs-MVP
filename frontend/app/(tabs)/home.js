@@ -9,7 +9,7 @@ import * as Clipboard from 'expo-clipboard';
 export default function HomePage() {
   const router = useRouter();
   const [walletAddress, setWalletAddress] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [balance, setBalance] = useState(10000);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -20,9 +20,9 @@ export default function HomePage() {
   const loadUserData = async () => {
     try {
       const address = await AsyncStorage.getItem('wallet_address');
-      const userEmail = await AsyncStorage.getItem('user_email');
+      const savedUsername = await AsyncStorage.getItem('username');
       
-      // Initialize demo balance if not set
+      // Load balance
       const savedBalance = await AsyncStorage.getItem('demo_balance');
       if (!savedBalance) {
         await AsyncStorage.setItem('demo_balance', '10000');
@@ -32,7 +32,7 @@ export default function HomePage() {
       }
       
       setWalletAddress(address || '');
-      setEmail(userEmail || '');
+      setUsername(savedUsername || 'User');
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -84,7 +84,7 @@ export default function HomePage() {
             <View style={styles.header}>
               <View>
                 <Text style={styles.greeting}>Welcome back</Text>
-                <Text style={styles.username}>{email.split('@')[0]}</Text>
+                <Text style={styles.username}>{username}</Text>
               </View>
               <TouchableOpacity onPress={handleLogout}>
                 <MaterialCommunityIcons name="logout" size={24} color="#FF4444" />
@@ -94,7 +94,7 @@ export default function HomePage() {
             <View style={styles.balanceCard}>
               <Text style={styles.balanceLabel}>Demo Balance</Text>
               <Text style={styles.balance}>${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-              <Text style={styles.balanceSubtext}>10,000 USDC available for trading</Text>
+              <Text style={styles.balanceSubtext}>USDC available for trading</Text>
             </View>
 
             <View style={styles.walletCard}>
