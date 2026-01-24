@@ -80,7 +80,6 @@ export default function AuthPage() {
                 <MaterialCommunityIcons name="wallet" size={48} color="#00FFF0" />
               </View>
               <Text style={styles.title}>Jaspr</Text>
-              <Text style={styles.labsText}>Labs</Text>
               {showUsernameInput ? (
                 <Text style={styles.subtitle}>Choose your username</Text>
               ) : (
