@@ -25,6 +25,7 @@ export default function AuthPage() {
       const isLoggedIn = await AsyncStorage.getItem('is_logged_in');
       if (isLoggedIn === 'true') {
         router.replace('/(tabs)/home');
+        return;
       }
     } catch (error) {
       console.error('Session check error:', error);
@@ -33,21 +34,21 @@ export default function AuthPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleQuickStart = async () => {
+    console.log('Quick Start clicked');
     setLoading(true);
     try {
-      // For demo: mock Google OAuth since Supabase needs setup
-      const mockEmail = 'user@google.com';
-      await handleAuthSuccess(mockEmail, 'google');
+      await handleAuthSuccess('quickstart@jaspr.app', 'quick');
     } catch (error) {
-      console.error('Google login error:', error);
-      Alert.alert('Error', 'Login failed. Please try again.');
+      console.error('Quick start error:', error);
+      Alert.alert('Error', 'Failed to start: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleEmailLogin = async () => {
+    console.log('Email login clicked:', email);
     if (!email || !email.includes('@')) {
       Alert.alert('Error', 'Please enter a valid email');
       return;
@@ -58,19 +59,20 @@ export default function AuthPage() {
       await handleAuthSuccess(email, 'email');
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', error.message || 'Failed to login');
+      Alert.alert('Error', 'Failed to login: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickStart = async () => {
+  const handleGoogleLogin = async () => {
+    console.log('Google login clicked');
     setLoading(true);
     try {
-      await handleAuthSuccess('user@jaspr.app', 'quick');
+      await handleAuthSuccess('user@google.com', 'google');
     } catch (error) {
-      console.error('Quick start error:', error);
-      Alert.alert('Error', 'Failed to start');
+      console.error('Google login error:', error);
+      Alert.alert('Error', 'Failed to login: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -78,35 +80,54 @@ export default function AuthPage() {
 
   const handleAuthSuccess = async (userEmail, provider) => {
     try {
+      console.log('Creating wallet for:', userEmail);
+      
       // Create or load wallet
       let wallet;
       const savedWallet = await AsyncStorage.getItem('wallet_private_key');
       
       if (savedWallet) {
+        console.log('Loading existing wallet');
         wallet = new ethers.Wallet(savedWallet);
       } else {
+        console.log('Creating new wallet');
         wallet = ethers.Wallet.createRandom();
         await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
       }
 
+      console.log('Wallet address:', wallet.address);
       await AsyncStorage.setItem('wallet_address', wallet.address);
       await AsyncStorage.setItem('user_email', userEmail);
 
       // Register user in backend
-      await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-        email: userEmail,
-        wallet_address: wallet.address,
-        provider: provider,
-      });
+      try {
+        console.log('Registering user in backend');
+        await axios.post(`${BACKEND_URL}/api/auth/signup`, {
+          email: userEmail,
+          wallet_address: wallet.address,
+          provider: provider,
+        });
+        console.log('User registered successfully');
+      } catch (backendError) {
+        console.log('Backend registration failed (continuing anyway):', backendError.message);
+      }
 
       await AsyncStorage.setItem('is_logged_in', 'true');
+      console.log('Login successful, navigating to home');
       
       Alert.alert(
-        'Welcome to JASPR! 🎉',
-        'Your wallet has been created.\n\nYou can now trade crypto on Base Sepolia!',
-        [{ text: 'Start Trading', onPress: () => router.replace('/(tabs)/home') }]
+        'Welcome to JASPR Labs! 🎉',
+        `Your wallet has been created!\n\nAddress: ${wallet.address.slice(0, 10)}...\n\nYou can now trade crypto on Base Sepolia!`,
+        [{ 
+          text: 'Start Trading', 
+          onPress: () => {
+            console.log('Navigating to home');
+            router.replace('/(tabs)/home');
+          }
+        }]
       );
     } catch (error) {
+      console.error('Auth error:', error);
       throw error;
     }
   };
@@ -115,6 +136,7 @@ export default function AuthPage() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00d4ff" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -134,7 +156,8 @@ export default function AuthPage() {
 
         <View style={styles.header}>
           <MaterialCommunityIcons name="wallet" size={60} color="#00d4ff" />
-          <Text style={styles.title}>Welcome to JASPR</Text>
+          <Text style={styles.title}>JASPR</Text>
+          <Text style={styles.labsText}>LABS</Text>
           <Text style={styles.subtitle}>CEX Experience • DEX Freedom</Text>
         </View>
 
@@ -143,6 +166,7 @@ export default function AuthPage() {
             style={styles.quickButton}
             onPress={handleQuickStart}
             disabled={loading}
+            activeOpacity={0.7}
           >
             <LinearGradient
               colors={['#00d4ff', '#0099cc']}
@@ -180,8 +204,9 @@ export default function AuthPage() {
             style={styles.emailButton}
             onPress={handleEmailLogin}
             disabled={loading || !email}
+            activeOpacity={0.7}
           >
-            <View style={styles.emailInner}>
+            <View style={[styles.emailInner, (!email || loading) && styles.buttonDisabled]}>
               <MaterialCommunityIcons name="email" size={24} color="#fff" />
               <Text style={styles.buttonText}>Continue with Email</Text>
             </View>
@@ -191,6 +216,7 @@ export default function AuthPage() {
             style={styles.googleButton}
             onPress={handleGoogleLogin}
             disabled={loading}
+            activeOpacity={0.7}
           >
             <View style={styles.googleInner}>
               <MaterialCommunityIcons name="google" size={24} color="#fff" />
@@ -218,6 +244,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#0f0f23',
   },
+  loadingText: {
+    color: '#fff',
+    marginTop: 16,
+    fontSize: 16,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
@@ -231,15 +262,23 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontSize: 32,
+    fontSize: 48,
     fontWeight: 'bold',
     color: '#fff',
     marginTop: 16,
+    letterSpacing: 4,
+  },
+  labsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00d4ff',
+    letterSpacing: 6,
+    marginTop: -4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#00d4ff',
-    marginTop: 8,
+    color: '#888',
+    marginTop: 12,
   },
   buttons: {
     gap: 16,
@@ -307,6 +346,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   info: {
     flexDirection: 'row',

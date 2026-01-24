@@ -15,6 +15,7 @@ export default function LandingPage() {
         <View style={styles.logoContainer}>
           <MaterialCommunityIcons name="wallet" size={80} color="#00d4ff" />
           <Text style={styles.logoText}>JASPR</Text>
+          <Text style={styles.labsText}>LABS</Text>
           <Text style={styles.tagline}>Trade Crypto Like a Pro</Text>
           <Text style={styles.subtitle}>CEX Experience • DEX Freedom</Text>
         </View>
@@ -74,10 +75,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
     letterSpacing: 4,
   },
+  labsText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#00d4ff',
+    letterSpacing: 8,
+    marginTop: -8,
+  },
   tagline: {
     fontSize: 18,
     color: '#00d4ff',
-    marginTop: 8,
+    marginTop: 16,
   },
   subtitle: {
     fontSize: 14,
