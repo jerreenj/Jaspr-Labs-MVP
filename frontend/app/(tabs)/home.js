@@ -1,19 +1,15 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
-import axios from 'axios';
-import Constants from 'expo-constants';
-
-const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://jaspr-swap.preview.emergentagent.com';
 
 export default function HomePage() {
+  const router = useRouter();
   const [walletAddress, setWalletAddress] = useState('');
   const [email, setEmail] = useState('');
-  const [balance, setBalance] = useState({ usdc: 0, tokens: {} });
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -26,18 +22,9 @@ export default function HomePage() {
       const userEmail = await AsyncStorage.getItem('user_email');
       setWalletAddress(address || '');
       setEmail(userEmail || '');
-
-      if (address) {
-        const response = await axios.get(`${BACKEND_URL}/api/users/${address}/balance`);
-        setBalance({
-          usdc: response.data.usdc_balance || 0,
-          tokens: response.data.token_balances || {}
-        });
-      }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -49,157 +36,166 @@ export default function HomePage() {
 
   const copyAddress = async () => {
     await Clipboard.setStringAsync(walletAddress);
-    Alert.alert('Success', 'Address copied!');
+    Alert.alert('Copied!', 'Address copied to clipboard');
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00d4ff" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    router.replace('/');
+  };
 
   return (
-    <LinearGradient
-      colors={['#0f0f23', '#1a1a3e', '#2d2d5f']}
-      style={styles.container}
-    >
-      <ScrollView 
-        style={styles.scroll} 
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d4ff" />
-        }
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#000428', '#004e92']}
+        style={styles.gradient}
       >
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Welcome back</Text>
-          <Text style={styles.email}>{email}</Text>
-        </View>
-
-        <View style={styles.walletCard}>
-          <Text style={styles.cardLabel}>Wallet Address</Text>
-          <View style={styles.addressRow}>
-            <Text style={styles.address} numberOfLines={1}>
-              {walletAddress ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}` : 'Loading...'}
-            </Text>
-            <TouchableOpacity onPress={copyAddress}>
-              <MaterialCommunityIcons name="content-copy" size={20} color="#00d4ff" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.networkBadge}>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#00d4ff" />
-            <Text style={styles.networkText}>JASPR Network</Text>
-          </View>
-        </View>
-
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>USDC Balance</Text>
-          <Text style={styles.balance}>{balance.usdc.toFixed(2)}</Text>
-          <Text style={styles.balanceUsd}>≈ ${balance.usdc.toFixed(2)}</Text>
-        </View>
-
-        <View style={styles.tokensSection}>
-          <Text style={styles.sectionTitle}>Token Holdings</Text>
-          {Object.keys(balance.tokens).length > 0 ? (
-            Object.entries(balance.tokens).map(([token, amount]) => (
-              <View key={token} style={styles.tokenRow}>
-                <Text style={styles.tokenName}>{token}</Text>
-                <Text style={styles.tokenAmount}>{amount.toFixed(6)}</Text>
+        <ScrollView 
+          style={styles.scroll}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00FFF0" />
+          }
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.greeting}>Welcome</Text>
+                <Text style={styles.username}>{email.split('@')[0]}</Text>
               </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No tokens yet. Start trading!</Text>
-          )}
-        </View>
-      </ScrollView>
-    </LinearGradient>
+              <TouchableOpacity onPress={handleLogout}>
+                <MaterialCommunityIcons name="logout" size={24} color="#FF4444" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.walletCard}>
+              <View style={styles.cardHeader}>
+                <MaterialCommunityIcons name="wallet" size={24} color="#00FFF0" />
+                <Text style={styles.cardTitle}>Wallet Address</Text>
+              </View>
+              <TouchableOpacity onPress={copyAddress} style={styles.addressRow}>
+                <Text style={styles.address} numberOfLines={1}>
+                  {walletAddress ? `${walletAddress.slice(0, 10)}...${walletAddress.slice(-10)}` : 'Loading...'}
+                </Text>
+                <MaterialCommunityIcons name="content-copy" size={20} color="#00FFF0" />
+              </TouchableOpacity>
+              <View style={styles.networkBadge}>
+                <View style={styles.dot} />
+                <Text style={styles.networkText}>Base Sepolia</Text>
+              </View>
+            </View>
+
+            <View style={styles.balanceCard}>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Text style={styles.balance}>$0.00</Text>
+              <Text style={styles.balanceChange}>+0.00%</Text>
+            </View>
+
+            <View style={styles.quickActions}>
+              <QuickAction icon="swap-horizontal" label="Swap" onPress={() => {}} />
+              <QuickAction icon="currency-usd" label="Trade" onPress={() => {}} />
+              <QuickAction icon="chart-line" label="Markets" onPress={() => {}} />
+            </View>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    </View>
+  );
+}
+
+function QuickAction({ icon, label, onPress }) {
+  return (
+    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+      <View style={styles.actionIcon}>
+        <MaterialCommunityIcons name={icon} size={24} color="#00FFF0" />
+      </View>
+      <Text style={styles.actionLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0f0f23',
-  },
-  loadingText: {
-    color: '#fff',
-    marginTop: 16,
-    fontSize: 16,
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  gradient: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: 24, paddingTop: 60 },
-  header: { marginBottom: 32 },
-  greeting: { fontSize: 16, color: '#888' },
-  email: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginTop: 4 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  greeting: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
+  username: { fontSize: 24, fontWeight: '700', color: '#FFF', marginTop: 4 },
   walletCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(0, 255, 240, 0.1)',
   },
-  cardLabel: { fontSize: 14, color: '#888', marginBottom: 8 },
-  addressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  address: { fontSize: 16, color: '#fff', fontFamily: 'monospace', flex: 1 },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  cardTitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '500' },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  address: { fontSize: 14, color: '#FFF', fontFamily: 'monospace', flex: 1 },
   networkBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 6,
+    gap: 8,
   },
-  networkText: { fontSize: 12, color: '#00d4ff' },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00FFF0',
+  },
+  networkText: { fontSize: 13, color: '#00FFF0', fontWeight: '500' },
   balanceCard: {
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    backgroundColor: 'rgba(0, 255, 240, 0.05)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.3)',
+    borderColor: 'rgba(0, 255, 240, 0.2)',
   },
-  balanceLabel: { fontSize: 14, color: '#888' },
-  balance: { fontSize: 48, fontWeight: 'bold', color: '#fff', marginTop: 8 },
-  balanceUsd: { fontSize: 16, color: '#888', marginTop: 4 },
-  tokensSection: {
+  balanceLabel: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
+  balance: { fontSize: 48, fontWeight: '700', color: '#FFF', marginTop: 8 },
+  balanceChange: { fontSize: 16, color: '#00FFF0', marginTop: 4 },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 255, 240, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  tokenRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  tokenName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  tokenAmount: {
-    fontSize: 16,
-    color: '#00d4ff',
-    fontFamily: 'monospace',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
+  actionLabel: { fontSize: 13, color: '#FFF', fontWeight: '500' },
 });
