@@ -14,19 +14,9 @@ export default function AuthPage() {
   const [username, setUsername] = useState('');
   const [provider, setProvider] = useState('');
 
-  const handleLoginClick = (loginProvider) => {
-    setProvider(loginProvider);
-    setShowUsernameInput(true);
-  };
-
-  const createWalletAndLogin = async () => {
-    if (!username.trim()) {
-      Alert.alert('Error', 'Please enter a username');
-      return;
-    }
-
+  const handleQuickStart = async () => {
     setLoading(true);
-    console.log(`[AUTH] Starting ${provider} login with username: ${username}`);
+    console.log('[AUTH] Starting Quick Start login...');
     
     try {
       // Create wallet
