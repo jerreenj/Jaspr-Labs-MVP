@@ -14,8 +14,8 @@ export default function LandingPage() {
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <MaterialCommunityIcons name="wallet" size={80} color="#00d4ff" />
-          <Text style={styles.logoText}>JASPR</Text>
-          <Text style={styles.labsText}>LABS</Text>
+          <Text style={styles.logoText}>Jaspr</Text>
+          <Text style={styles.labsText}>Labs</Text>
           <Text style={styles.tagline}>Trade Crypto Like a Pro</Text>
           <Text style={styles.subtitle}>CEX Experience • DEX Freedom</Text>
         </View>
@@ -34,7 +34,7 @@ export default function LandingPage() {
             colors={['#00d4ff', '#0099cc']}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>Launch Jaspr</Text>
+            <Text style={styles.buttonText}>Launch</Text>
             <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
@@ -73,13 +73,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginTop: 16,
-    letterSpacing: 4,
+    letterSpacing: 2,
   },
   labsText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#00d4ff',
-    letterSpacing: 8,
+    letterSpacing: 4,
     marginTop: -8,
   },
   tagline: {
