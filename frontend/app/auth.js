@@ -1,27 +1,89 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { createClient } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://jaspr-swap.preview.emergentagent.com';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  const handleLogin = async () => {
-    if (!email) {
-      Alert.alert('Error', 'Please enter an email');
-      return;
+  useEffect(() => {
+    checkExistingSession();
+  }, []);
+
+  const checkExistingSession = async () => {
+    try {
+      const isLoggedIn = await AsyncStorage.getItem('is_logged_in');
+      if (isLoggedIn === 'true') {
+        router.replace('/(tabs)/home');
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+    } finally {
+      setChecking(false);
     }
+  };
 
+  const handleGoogleLogin = async () => {
     setLoading(true);
+    try {
+      // Supabase Google OAuth
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'jaspr://auth/callback',
+        },
+      });
+
+      if (error) throw error;
+
+      // Wait for OAuth redirect
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        'jaspr://auth/callback'
+      );
+
+      if (result.type === 'success') {
+        await handleAuthSuccess('google');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      Alert.alert('Error', 'Google login failed. Try email login.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    // Simple wallet creation for demo
+    setLoading(true);
+    try {
+      await handleAuthSuccess('email');
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert('Error', error.message || 'Failed to login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = async (provider) => {
     try {
       // Create or load wallet
       let wallet;
@@ -35,23 +97,30 @@ export default function AuthPage() {
       }
 
       await AsyncStorage.setItem('wallet_address', wallet.address);
+      const email = provider === 'google' ? 'user@google.com' : 'user@jaspr.app';
       await AsyncStorage.setItem('user_email', email);
 
       // Register user in backend
       await axios.post(`${BACKEND_URL}/api/auth/signup`, {
         email: email,
-        wallet_address: wallet.address
+        wallet_address: wallet.address,
+        provider: provider,
       });
 
       await AsyncStorage.setItem('is_logged_in', 'true');
       router.replace('/(tabs)/home');
     } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Error', error.message || 'Failed to login');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
+
+  if (checking) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00d4ff" />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient
@@ -69,43 +138,46 @@ export default function AuthPage() {
         <View style={styles.header}>
           <MaterialCommunityIcons name="wallet" size={60} color="#00d4ff" />
           <Text style={styles.title}>Welcome to JASPR</Text>
-          <Text style={styles.subtitle}>Enter email to get started</Text>
+          <Text style={styles.subtitle}>CEX Experience • DEX Freedom</Text>
         </View>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email address"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!loading}
-          />
+        <View style={styles.buttons}>
+          <TouchableOpacity 
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <View style={styles.googleInner}>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="google" size={24} color="#fff" />
+                  <Text style={styles.buttonText}>Continue with Google</Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.loginButton}
-            onPress={handleLogin}
+            style={styles.emailButton}
+            onPress={handleEmailLogin}
             disabled={loading}
           >
             <LinearGradient
               colors={['#00d4ff', '#0099cc']}
               style={styles.buttonGradient}
             >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Continue</Text>
-              )}
+              <MaterialCommunityIcons name="wallet" size={24} color="#fff" />
+              <Text style={styles.buttonText}>Quick Start</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
         <View style={styles.info}>
-          <MaterialCommunityIcons name="gift" size={20} color="#00d4ff" />
+          <MaterialCommunityIcons name="shield-check" size={20} color="#00d4ff" />
           <Text style={styles.infoText}>
-            Get 100 USDC free to start trading!
+            Secure wallet created automatically • Trade on Base Sepolia
           </Text>
         </View>
       </View>
@@ -115,6 +187,12 @@ export default function AuthPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0f0f23',
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
@@ -135,28 +213,34 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#888',
+    color: '#00d4ff',
     marginTop: 8,
   },
-  form: {
+  buttons: {
     gap: 16,
   },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
+  googleButton: {
+    width: '100%',
   },
-  loginButton: {
+  googleInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    backgroundColor: '#4285f4',
+  },
+  emailButton: {
     width: '100%',
   },
   buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    gap: 8,
   },
   buttonText: {
     color: '#fff',
