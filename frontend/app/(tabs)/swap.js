@@ -1,14 +1,15 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Supported tokens for swap
 const SWAP_TOKENS = [
-  { symbol: 'USDC', name: 'USD Coin', decimals: 6, color: '#2775CA' },
-  { symbol: 'ETH', name: 'Ethereum', decimals: 18, color: '#627EEA' },
-  { symbol: 'BTC', name: 'Bitcoin', decimals: 8, color: '#F7931A' },
+  { symbol: 'USDC', name: 'USD Coin', color: '#2775CA', coingeckoId: 'usd-coin' },
+  { symbol: 'ETH', name: 'Ethereum', color: '#627EEA', coingeckoId: 'ethereum' },
+  { symbol: 'BTC', name: 'Bitcoin', color: '#F7931A', coingeckoId: 'bitcoin' },
+  { symbol: 'SOL', name: 'Solana', color: '#00FFA3', coingeckoId: 'solana' },
 ];
 
 export default function SwapPage() {
@@ -17,50 +18,58 @@ export default function SwapPage() {
   const [amount, setAmount] = useState('');
   const [estimatedOutput, setEstimatedOutput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [prices, setPrices] = useState({ USDC: 1, ETH: 3000, BTC: 90000 });
-  const [balance, setBalance] = useState(10000);
-  const [holdings, setHoldings] = useState({ USDC: 10000, ETH: 0, BTC: 0 });
+  const [prices, setPrices] = useState({ USDC: 1, ETH: 3000, BTC: 90000, SOL: 130 });
+  const [holdings, setHoldings] = useState({ USDC: 10000, ETH: 0, BTC: 0, SOL: 0 });
+  const [swapCount, setSwapCount] = useState(0);
+  const [slippage, setSlippage] = useState('0.5');
 
-  // Fetch live prices
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
   useEffect(() => {
     fetchPrices();
-    loadBalances();
     const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
   }, []);
 
+  const loadData = async () => {
+    try {
+      const demoBalance = await AsyncStorage.getItem('demo_balance');
+      const storedHoldings = await AsyncStorage.getItem('token_holdings');
+      const count = await AsyncStorage.getItem('swap_count');
+      
+      const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
+      const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
+      
+      setHoldings({
+        USDC: usdcBalance,
+        ETH: tokenHoldings.ETH || 0,
+        BTC: tokenHoldings.BTC || 0,
+        SOL: tokenHoldings.SOL || 0,
+      });
+      setSwapCount(count ? parseInt(count) : 0);
+    } catch (error) {
+      console.error('Load error:', error);
+    }
+  };
+
   const fetchPrices = async () => {
     try {
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin,usd-coin&vs_currencies=usd'
+        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin,solana,usd-coin&vs_currencies=usd'
       );
       const data = await response.json();
       setPrices({
         USDC: 1,
         ETH: data.ethereum?.usd || 3000,
         BTC: data.bitcoin?.usd || 90000,
+        SOL: data.solana?.usd || 130,
       });
     } catch (error) {
       console.error('Price fetch error:', error);
-    }
-  };
-
-  const loadBalances = async () => {
-    try {
-      const demoBalance = await AsyncStorage.getItem('demo_balance');
-      const storedHoldings = await AsyncStorage.getItem('token_holdings');
-      
-      const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
-      const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
-      
-      setBalance(usdcBalance);
-      setHoldings({
-        USDC: usdcBalance,
-        ETH: tokenHoldings.ETH || 0,
-        BTC: tokenHoldings.BTC || 0,
-      });
-    } catch (error) {
-      console.error('Load balances error:', error);
     }
   };
 
@@ -80,30 +89,22 @@ export default function SwapPage() {
     
     const fromPrice = prices[fromToken] || 1;
     const toPrice = prices[toToken] || 1;
+    const slippageFactor = 1 - (parseFloat(slippage) / 100);
+    const fee = 0.003; // 0.3% fee
     
-    // Calculate output with 0.3% fee
     const inputValue = parseFloat(inputAmount) * fromPrice;
-    const output = (inputValue / toPrice) * 0.997;
-    setEstimatedOutput(output.toFixed(6));
-  }, [fromToken, toToken, prices]);
+    const output = (inputValue / toPrice) * (1 - fee) * slippageFactor;
+    setEstimatedOutput(output.toFixed(8));
+  }, [fromToken, toToken, prices, slippage]);
 
-  const handleAmountChange = (text) => {
-    // Only allow valid number input
-    const cleanedText = text.replace(/[^0-9.]/g, '');
-    setAmount(cleanedText);
-    calculateOutput(cleanedText);
-  };
-
-  const setMaxAmount = () => {
-    const maxBalance = holdings[fromToken] || 0;
-    setAmount(maxBalance.toString());
-    calculateOutput(maxBalance.toString());
-  };
+  useEffect(() => {
+    calculateOutput(amount);
+  }, [amount, fromToken, toToken, calculateOutput]);
 
   const executeSwap = async () => {
     const inputAmount = parseFloat(amount);
     
-    if (!amount || inputAmount <= 0) {
+    if (!amount || !isFinite(inputAmount) || inputAmount <= 0) {
       Alert.alert('Error', 'Enter a valid amount');
       return;
     }
@@ -114,15 +115,9 @@ export default function SwapPage() {
       return;
     }
 
-    // Execute swap directly (confirmation shown after success)
-    performSwap();
-  };
-
-  const performSwap = async () => {
     setLoading(true);
     
     try {
-      const inputAmount = parseFloat(amount);
       const outputAmount = parseFloat(estimatedOutput);
       
       // Update holdings
@@ -130,15 +125,36 @@ export default function SwapPage() {
       newHoldings[fromToken] = (newHoldings[fromToken] || 0) - inputAmount;
       newHoldings[toToken] = (newHoldings[toToken] || 0) + outputAmount;
       
-      // Simulate blockchain transaction time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Ensure valid numbers
+      Object.keys(newHoldings).forEach(key => {
+        if (!isFinite(newHoldings[key]) || newHoldings[key] < 0.00000001) {
+          newHoldings[key] = 0;
+        }
+      });
+      
+      // Simulate blockchain transaction
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Save to storage
       await AsyncStorage.setItem('demo_balance', newHoldings.USDC.toString());
       await AsyncStorage.setItem('token_holdings', JSON.stringify({
         ETH: newHoldings.ETH,
         BTC: newHoldings.BTC,
+        SOL: newHoldings.SOL,
       }));
+      
+      // Update swap count and check for rewards
+      const newSwapCount = swapCount + 1;
+      await AsyncStorage.setItem('swap_count', newSwapCount.toString());
+      
+      // REWARD: Free USDC for first 10 swaps!
+      let rewardMessage = '';
+      if (newSwapCount <= 10) {
+        const rewardAmount = 5;
+        newHoldings.USDC += rewardAmount;
+        await AsyncStorage.setItem('demo_balance', newHoldings.USDC.toString());
+        rewardMessage = `\n\n🎁 Swap Reward: +$${rewardAmount} USDC! (${newSwapCount}/10)`;
+      }
       
       // Save to history
       const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
@@ -146,8 +162,8 @@ export default function SwapPage() {
         type: 'swap',
         fromToken,
         toToken,
-        amountIn: amount,
-        amountOut: estimatedOutput,
+        amountIn: inputAmount,
+        amountOut: outputAmount,
         timestamp: Date.now(),
         txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
         status: 'confirmed',
@@ -156,11 +172,11 @@ export default function SwapPage() {
       
       // Update state
       setHoldings(newHoldings);
-      setBalance(newHoldings.USDC);
+      setSwapCount(newSwapCount);
       
       Alert.alert(
         'Swap Successful! 🎉',
-        `Swapped ${amount} ${fromToken} for ${estimatedOutput} ${toToken}\n\nTransaction confirmed on Base Sepolia`,
+        `Swapped ${inputAmount.toFixed(fromToken === 'USDC' ? 2 : 8)} ${fromToken}\nfor ${outputAmount.toFixed(8)} ${toToken}${rewardMessage}`,
         [{ text: 'Done', onPress: () => { setAmount(''); setEstimatedOutput(''); } }]
       );
     } catch (error) {
@@ -170,49 +186,60 @@ export default function SwapPage() {
     }
   };
 
-  const getTokenColor = (symbol) => {
-    return SWAP_TOKENS.find(t => t.symbol === symbol)?.color || '#00FFF0';
-  };
+  const getFromBalance = () => holdings[fromToken] || 0;
+  const getToBalance = () => holdings[toToken] || 0;
+  const getTokenColor = (symbol) => SWAP_TOKENS.find(t => t.symbol === symbol)?.color || '#00FFF0';
+
+  const inputUsdValue = amount ? (parseFloat(amount) * prices[fromToken]).toFixed(2) : '0.00';
+  const outputUsdValue = estimatedOutput ? (parseFloat(estimatedOutput) * prices[toToken]).toFixed(2) : '0.00';
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#000428', '#004e92']} style={styles.gradient}>
+      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
         <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.content}>
-            <Text style={styles.title}>Swap Tokens</Text>
-            <Text style={styles.subtitle}>Trade instantly on Base Sepolia</Text>
+            <Text style={styles.title}>Swap</Text>
+            <Text style={styles.subtitle}>Instant token exchange • 0.3% fee</Text>
 
-            {/* From Card */}
+            {/* Rewards Banner */}
+            {swapCount < 10 && (
+              <View style={styles.rewardBanner}>
+                <MaterialCommunityIcons name="gift" size={20} color="#FFD700" />
+                <Text style={styles.rewardText}>
+                  🎁 Earn $5 per swap! ({swapCount}/10 swaps)
+                </Text>
+              </View>
+            )}
+
+            {/* Swap Interface */}
             <View style={styles.swapContainer}>
-              <View style={styles.card}>
+              {/* From Card */}
+              <View style={styles.swapCard}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.label}>From</Text>
-                  <TouchableOpacity onPress={setMaxAmount}>
+                  <Text style={styles.cardLabel}>From</Text>
+                  <TouchableOpacity onPress={() => setAmount(getFromBalance().toString())}>
                     <Text style={styles.balanceText}>
-                      Balance: {(holdings[fromToken] || 0).toFixed(fromToken === 'USDC' ? 2 : 6)} {fromToken}
+                      Balance: {getFromBalance().toFixed(fromToken === 'USDC' ? 2 : 6)}
                     </Text>
                   </TouchableOpacity>
                 </View>
                 
-                <View style={styles.tokenRow}>
+                <View style={styles.tokenSelector}>
                   {SWAP_TOKENS.map((token) => (
                     <TouchableOpacity
                       key={token.symbol}
                       style={[
-                        styles.tokenChip, 
-                        fromToken === token.symbol && [styles.tokenChipActive, { borderColor: token.color }]
+                        styles.tokenBtn, 
+                        fromToken === token.symbol && { borderColor: token.color, backgroundColor: `${token.color}15` }
                       ]}
                       onPress={() => { 
                         if (token.symbol !== toToken) {
                           setFromToken(token.symbol);
-                          setAmount('');
-                          setEstimatedOutput('');
                         }
                       }}
-                      activeOpacity={0.7}
                     >
                       <Text style={[
-                        styles.tokenChipText, 
+                        styles.tokenBtnText, 
                         fromToken === token.symbol && { color: token.color }
                       ]}>
                         {token.symbol}
@@ -221,55 +248,54 @@ export default function SwapPage() {
                   ))}
                 </View>
                 
-                <View style={styles.inputRow}>
+                <View style={styles.inputContainer}>
                   <TextInput
                     style={styles.input}
-                    placeholder="0.0"
-                    placeholderTextColor="#666"
+                    placeholder="0.00"
+                    placeholderTextColor="#444"
                     value={amount}
-                    onChangeText={handleAmountChange}
+                    onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
                     keyboardType="decimal-pad"
                   />
-                  <Text style={styles.usdValue}>
-                    ≈ ${(parseFloat(amount || 0) * prices[fromToken]).toFixed(2)}
-                  </Text>
+                  <Text style={styles.usdValue}>≈ ${inputUsdValue}</Text>
                 </View>
               </View>
 
               {/* Swap Button */}
-              <TouchableOpacity style={styles.swapButton} onPress={swapTokens}>
-                <View style={styles.swapIcon}>
+              <TouchableOpacity style={styles.swapButton} onPress={swapTokens} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['#1a2a4a', '#0d1f3c']}
+                  style={styles.swapButtonInner}
+                >
                   <MaterialCommunityIcons name="swap-vertical" size={24} color="#00FFF0" />
-                </View>
+                </LinearGradient>
               </TouchableOpacity>
 
               {/* To Card */}
-              <View style={styles.card}>
+              <View style={styles.swapCard}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.label}>To</Text>
+                  <Text style={styles.cardLabel}>To</Text>
                   <Text style={styles.balanceText}>
-                    Balance: {(holdings[toToken] || 0).toFixed(toToken === 'USDC' ? 2 : 6)} {toToken}
+                    Balance: {getToBalance().toFixed(toToken === 'USDC' ? 2 : 6)}
                   </Text>
                 </View>
                 
-                <View style={styles.tokenRow}>
+                <View style={styles.tokenSelector}>
                   {SWAP_TOKENS.map((token) => (
                     <TouchableOpacity
                       key={token.symbol}
                       style={[
-                        styles.tokenChip, 
-                        toToken === token.symbol && [styles.tokenChipActive, { borderColor: token.color }]
+                        styles.tokenBtn, 
+                        toToken === token.symbol && { borderColor: token.color, backgroundColor: `${token.color}15` }
                       ]}
                       onPress={() => { 
                         if (token.symbol !== fromToken) {
                           setToToken(token.symbol);
-                          calculateOutput(amount);
                         }
                       }}
-                      activeOpacity={0.7}
                     >
                       <Text style={[
-                        styles.tokenChipText, 
+                        styles.tokenBtnText, 
                         toToken === token.symbol && { color: token.color }
                       ]}>
                         {token.symbol}
@@ -278,41 +304,55 @@ export default function SwapPage() {
                   ))}
                 </View>
                 
-                <View style={styles.inputRow}>
-                  <Text style={styles.output}>{estimatedOutput || '0.0'}</Text>
-                  <Text style={styles.usdValue}>
-                    ≈ ${(parseFloat(estimatedOutput || 0) * prices[toToken]).toFixed(2)}
-                  </Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.output}>{estimatedOutput || '0.00'}</Text>
+                  <Text style={styles.usdValue}>≈ ${outputUsdValue}</Text>
                 </View>
               </View>
             </View>
 
-            {/* Swap Info */}
+            {/* Swap Details */}
             {estimatedOutput && parseFloat(estimatedOutput) > 0 && (
-              <View style={styles.infoCard}>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Rate</Text>
-                  <Text style={styles.infoValue}>
+              <View style={styles.detailsCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Rate</Text>
+                  <Text style={styles.detailValue}>
                     1 {fromToken} = {(prices[fromToken] / prices[toToken]).toFixed(6)} {toToken}
                   </Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Fee (0.3%)</Text>
-                  <Text style={styles.infoValue}>${(parseFloat(amount || 0) * prices[fromToken] * 0.003).toFixed(2)}</Text>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Fee (0.3%)</Text>
+                  <Text style={styles.detailValue}>
+                    ${(parseFloat(amount || 0) * prices[fromToken] * 0.003).toFixed(4)}
+                  </Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Network</Text>
-                  <Text style={[styles.infoValue, { color: '#00FFF0' }]}>Base Sepolia</Text>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Slippage</Text>
+                  <Text style={styles.detailValue}>{slippage}%</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Network</Text>
+                  <Text style={[styles.detailValue, { color: '#00FFA3' }]}>Base Sepolia</Text>
                 </View>
               </View>
             )}
 
-            {/* Safety Banner */}
-            <View style={styles.banner}>
-              <MaterialCommunityIcons name="shield-check" size={18} color="#00FFF0" />
-              <Text style={styles.bannerText}>
-                Testnet demo mode. Real swaps require Base Sepolia ETH for gas.
-              </Text>
+            {/* Slippage Settings */}
+            <View style={styles.slippageRow}>
+              <Text style={styles.slippageLabel}>Slippage Tolerance</Text>
+              <View style={styles.slippageOptions}>
+                {['0.5', '1.0', '2.0'].map((val) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.slippageBtn, slippage === val && styles.slippageBtnActive]}
+                    onPress={() => setSlippage(val)}
+                  >
+                    <Text style={[styles.slippageBtnText, slippage === val && styles.slippageBtnTextActive]}>
+                      {val}%
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             {/* Swap Button */}
@@ -324,17 +364,19 @@ export default function SwapPage() {
             >
               <LinearGradient
                 colors={loading || !amount ? ['#333', '#222'] : ['#00FFF0', '#00B8D4']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={styles.buttonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.executeButtonGradient}
               >
                 {loading ? (
                   <View style={styles.loadingRow}>
                     <ActivityIndicator color="#FFF" size="small" />
-                    <Text style={[styles.buttonText, { color: '#FFF', marginLeft: 8 }]}>Processing...</Text>
+                    <Text style={[styles.executeButtonText, { color: '#FFF', marginLeft: 8 }]}>
+                      Swapping...
+                    </Text>
                   </View>
                 ) : (
-                  <Text style={styles.buttonText}>Swap Tokens</Text>
+                  <Text style={styles.executeButtonText}>Swap Tokens</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
@@ -342,10 +384,28 @@ export default function SwapPage() {
             {/* Live Prices */}
             <View style={styles.pricesCard}>
               <Text style={styles.pricesTitle}>Live Prices</Text>
-              <View style={styles.pricesRow}>
-                <Text style={styles.priceItem}>ETH: ${prices.ETH.toLocaleString()}</Text>
-                <Text style={styles.priceItem}>BTC: ${prices.BTC.toLocaleString()}</Text>
+              <View style={styles.pricesGrid}>
+                <View style={styles.priceItem}>
+                  <Text style={styles.priceSymbol}>ETH</Text>
+                  <Text style={styles.priceValue}>${prices.ETH.toLocaleString()}</Text>
+                </View>
+                <View style={styles.priceItem}>
+                  <Text style={styles.priceSymbol}>BTC</Text>
+                  <Text style={styles.priceValue}>${prices.BTC.toLocaleString()}</Text>
+                </View>
+                <View style={styles.priceItem}>
+                  <Text style={styles.priceSymbol}>SOL</Text>
+                  <Text style={styles.priceValue}>${prices.SOL.toLocaleString()}</Text>
+                </View>
               </View>
+            </View>
+
+            {/* Security Notice */}
+            <View style={styles.securityNotice}>
+              <MaterialCommunityIcons name="shield-check" size={16} color="#00FFF0" />
+              <Text style={styles.securityText}>
+                Self-custodial • Decentralized swaps • Base Sepolia Testnet
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -355,107 +415,120 @@ export default function SwapPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#0a0a1a' },
   gradient: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 100 },
-  title: { fontSize: 32, fontWeight: '700', color: '#FFF', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 24 },
-  swapContainer: { marginBottom: 16 },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
+  content: { padding: 20, paddingTop: 50, paddingBottom: 100 },
+  title: { fontSize: 28, fontWeight: '700', color: '#FFF' },
+  subtitle: { fontSize: 14, color: '#888', marginBottom: 20 },
+  rewardBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  rewardText: { flex: 1, fontSize: 14, color: '#FFD700', fontWeight: '600' },
+  swapContainer: { marginBottom: 16 },
+  swapCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  label: { fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '500' },
-  balanceText: { fontSize: 12, color: '#00FFF0' },
-  tokenRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  tokenChip: {
-    paddingHorizontal: 16,
+  cardLabel: { fontSize: 14, color: '#888', fontWeight: '500' },
+  balanceText: { fontSize: 13, color: '#00FFF0' },
+  tokenSelector: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  tokenBtn: {
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  tokenChipActive: {
-    backgroundColor: 'rgba(0, 255, 240, 0.1)',
-  },
-  tokenChipText: { fontSize: 14, fontWeight: '600', color: '#888' },
-  inputRow: {
+  tokenBtnText: { fontSize: 14, fontWeight: '700', color: '#666' },
+  inputContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  input: { fontSize: 36, color: '#FFF', fontWeight: '700', flex: 1 },
-  output: { fontSize: 36, color: '#00FFF0', fontWeight: '700' },
-  usdValue: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' },
+  input: { fontSize: 32, color: '#FFF', fontWeight: '700', flex: 1 },
+  output: { fontSize: 32, color: '#00FFF0', fontWeight: '700' },
+  usdValue: { fontSize: 14, color: '#888' },
   swapButton: {
     alignSelf: 'center',
-    marginVertical: -20,
+    marginVertical: -18,
     zIndex: 10,
   },
-  swapIcon: {
+  swapButtonInner: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#000428',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#00FFF0',
   },
-  infoCard: {
+  detailsCard: {
     backgroundColor: 'rgba(0, 255, 240, 0.05)',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     marginBottom: 16,
     gap: 12,
   },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  infoLabel: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
-  infoValue: { fontSize: 14, color: '#FFF', fontWeight: '600' },
-  banner: {
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  detailLabel: { fontSize: 14, color: '#888' },
+  detailValue: { fontSize: 14, color: '#FFF', fontWeight: '600' },
+  slippageRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 240, 0.1)',
-    padding: 12,
+    marginBottom: 20,
+  },
+  slippageLabel: { fontSize: 14, color: '#888' },
+  slippageOptions: { flexDirection: 'row', gap: 8 },
+  slippageBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
-    marginBottom: 20,
-    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  bannerText: { flex: 1, color: 'rgba(255, 255, 255, 0.7)', fontSize: 12 },
-  executeButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  executeButtonDisabled: {
-    opacity: 0.7,
-  },
-  buttonGradient: {
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#000', fontSize: 18, fontWeight: '700' },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  slippageBtnActive: { backgroundColor: 'rgba(0, 255, 240, 0.2)' },
+  slippageBtnText: { fontSize: 13, color: '#888', fontWeight: '600' },
+  slippageBtnTextActive: { color: '#00FFF0' },
+  executeButton: { borderRadius: 14, overflow: 'hidden', marginBottom: 20 },
+  executeButtonDisabled: { opacity: 0.6 },
+  executeButtonGradient: { paddingVertical: 18, alignItems: 'center' },
+  executeButtonText: { color: '#000', fontSize: 18, fontWeight: '700' },
+  loadingRow: { flexDirection: 'row', alignItems: 'center' },
   pricesCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
+    marginBottom: 16,
   },
-  pricesTitle: { fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 8 },
-  pricesRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  priceItem: { fontSize: 14, color: '#FFF', fontWeight: '500' },
+  pricesTitle: { fontSize: 13, color: '#666', marginBottom: 12, textAlign: 'center' },
+  pricesGrid: { flexDirection: 'row', justifyContent: 'space-around' },
+  priceItem: { alignItems: 'center' },
+  priceSymbol: { fontSize: 13, color: '#888', marginBottom: 4 },
+  priceValue: { fontSize: 15, color: '#FFF', fontWeight: '600' },
+  securityNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  securityText: { fontSize: 12, color: '#666' },
 });
