@@ -6,11 +6,18 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#00d4ff',
+        tabBarActiveTintColor: '#00FFF0',
         tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          backgroundColor: '#0f0f23',
-          borderTopColor: 'rgba(0, 212, 255, 0.1)',
+          backgroundColor: '#0a0a1a',
+          borderTopColor: 'rgba(0, 255, 240, 0.1)',
+          borderTopWidth: 1,
+          paddingTop: 8,
+          height: 80,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
@@ -42,30 +49,31 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="trade"
+        name="wallet"
         options={{
-          title: 'Trade',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="currency-usd" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="portfolio"
-        options={{
-          title: 'Portfolio',
+          title: 'Wallet',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="wallet" size={size} color={color} />
           ),
         }}
       />
+      {/* Hide trade, portfolio, settings from tab bar */}
+      <Tabs.Screen
+        name="trade"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="portfolio"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" size={size} color={color} />
-          ),
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>
