@@ -33,11 +33,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="swap"
+        options={{
+          title: 'Swap',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="swap-horizontal" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="trade"
         options={{
           title: 'Trade',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="swap-horizontal" size={size} color={color} />
+            <MaterialCommunityIcons name="currency-usd" size={size} color={color} />
           ),
         }}
       />
