@@ -1,28 +1,44 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
+import { ethers } from 'ethers';
+
+const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
+const BASE_SEPOLIA_EXPLORER = 'https://sepolia.basescan.org';
 
 export default function WalletPage() {
   const router = useRouter();
   const [walletAddress, setWalletAddress] = useState('');
-  const [holdings, setHoldings] = useState({ USDC: 10000, ETH: 0, BTC: 0 });
-  const [prices, setPrices] = useState({ ETH: 3000, BTC: 90000 });
+  const [privateKey, setPrivateKey] = useState('');
+  const [holdings, setHoldings] = useState({ USDC: 10000, ETH: 0, BTC: 0, SOL: 0 });
+  const [prices, setPrices] = useState({ ETH: 3000, BTC: 90000, SOL: 130 });
+  const [onChainBalance, setOnChainBalance] = useState('0');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [withdrawToken, setWithdrawToken] = useState('USDC');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    loadWalletData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadWalletData();
+    }, [])
+  );
 
   const loadWalletData = async () => {
     try {
       const address = await AsyncStorage.getItem('wallet_address');
+      const pk = await AsyncStorage.getItem('wallet_private_key');
       const demoBalance = await AsyncStorage.getItem('demo_balance');
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       
       setWalletAddress(address || '');
+      setPrivateKey(pk || '');
       
       const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
@@ -31,17 +47,30 @@ export default function WalletPage() {
         USDC: usdcBalance,
         ETH: tokenHoldings.ETH || 0,
         BTC: tokenHoldings.BTC || 0,
+        SOL: tokenHoldings.SOL || 0,
       });
+
+      // Fetch on-chain ETH balance
+      if (address) {
+        try {
+          const provider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
+          const balance = await provider.getBalance(address);
+          setOnChainBalance(ethers.formatEther(balance));
+        } catch (e) {
+          console.log('Could not fetch on-chain balance');
+        }
+      }
 
       // Fetch live prices
       try {
         const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin&vs_currencies=usd'
+          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin,solana&vs_currencies=usd'
         );
         const data = await response.json();
         setPrices({
           ETH: data.ethereum?.usd || 3000,
           BTC: data.bitcoin?.usd || 90000,
+          SOL: data.solana?.usd || 130,
         });
       } catch (e) {}
     } catch (error) {
@@ -54,48 +83,174 @@ export default function WalletPage() {
     Alert.alert('Copied!', 'Wallet address copied to clipboard');
   };
 
-  const handleWithdraw = () => {
+  const handleDeposit = () => {
     Alert.alert(
-      'Withdraw',
-      'Enter recipient address and amount to withdraw tokens from your wallet.',
+      'Deposit Crypto',
+      `Send tokens to your wallet:\n\n${walletAddress}\n\nNetwork: Base Sepolia Testnet\n\nNote: You need Base Sepolia ETH for gas fees.`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => {
-          Alert.alert('Demo Mode', 'Withdrawals require real Base Sepolia ETH for gas fees. This is a testnet demo.');
-        }},
+        { text: 'Copy Address', onPress: copyAddress },
+        { text: 'Get Test ETH', onPress: () => Alert.alert('Faucet', 'Visit https://www.alchemy.com/faucets/base-sepolia to get free test ETH') },
+        { text: 'OK' }
       ]
     );
   };
 
-  const handleDeposit = () => {
-    Alert.alert(
-      'Deposit',
-      `Send tokens to your wallet address:\n\n${walletAddress}\n\nNetwork: Base Sepolia Testnet`,
-      [{ text: 'Copy Address', onPress: copyAddress }, { text: 'OK' }]
-    );
+  const handleWithdraw = (token) => {
+    setWithdrawToken(token);
+    setWithdrawAmount('');
+    setRecipientAddress('');
+    setShowWithdrawModal(true);
+  };
+
+  const executeWithdraw = async () => {
+    if (!recipientAddress || !withdrawAmount) {
+      Alert.alert('Error', 'Please enter recipient address and amount');
+      return;
+    }
+
+    if (!ethers.isAddress(recipientAddress)) {
+      Alert.alert('Error', 'Invalid wallet address');
+      return;
+    }
+
+    const amount = parseFloat(withdrawAmount);
+    if (amount <= 0 || amount > holdings[withdrawToken]) {
+      Alert.alert('Error', 'Invalid amount or insufficient balance');
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      // For demo tokens, simulate the withdrawal
+      if (withdrawToken !== 'ETH') {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Update balances
+        const newHoldings = { ...holdings };
+        newHoldings[withdrawToken] -= amount;
+        
+        if (withdrawToken === 'USDC') {
+          await AsyncStorage.setItem('demo_balance', newHoldings.USDC.toString());
+        } else {
+          const tokenHoldings = {
+            ETH: newHoldings.ETH,
+            BTC: newHoldings.BTC,
+            SOL: newHoldings.SOL,
+          };
+          await AsyncStorage.setItem('token_holdings', JSON.stringify(tokenHoldings));
+        }
+        
+        // Save to history
+        const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
+        history.unshift({
+          type: 'send',
+          symbol: withdrawToken,
+          amount: amount,
+          to: recipientAddress,
+          timestamp: Date.now(),
+          txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+          status: 'confirmed',
+        });
+        await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
+        
+        setHoldings(newHoldings);
+        setShowWithdrawModal(false);
+        
+        Alert.alert(
+          'Withdrawal Successful! 🎉',
+          `Sent ${amount} ${withdrawToken} to\n${recipientAddress.slice(0, 10)}...${recipientAddress.slice(-8)}`,
+          [{ text: 'View History', onPress: () => router.push('/(tabs)/history') }, { text: 'Done' }]
+        );
+      } else {
+        // Real ETH withdrawal
+        if (parseFloat(onChainBalance) < amount) {
+          Alert.alert('Error', 'Insufficient on-chain ETH balance');
+          setSending(false);
+          return;
+        }
+
+        const provider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
+        const wallet = new ethers.Wallet(privateKey, provider);
+        
+        const tx = await wallet.sendTransaction({
+          to: recipientAddress,
+          value: ethers.parseEther(withdrawAmount),
+        });
+        
+        Alert.alert('Transaction Sent!', `TX Hash: ${tx.hash.slice(0, 20)}...\n\nWaiting for confirmation...`);
+        
+        await tx.wait();
+        
+        // Save to history
+        const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
+        history.unshift({
+          type: 'send',
+          symbol: 'ETH',
+          amount: amount,
+          to: recipientAddress,
+          timestamp: Date.now(),
+          txHash: tx.hash,
+          status: 'confirmed',
+        });
+        await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
+        
+        setShowWithdrawModal(false);
+        loadWalletData();
+        
+        Alert.alert('Success! 🎉', `Sent ${amount} ETH\nTX: ${tx.hash.slice(0, 20)}...`);
+      }
+    } catch (error) {
+      console.error('Withdraw error:', error);
+      Alert.alert('Error', 'Transaction failed: ' + error.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleExportKey = () => {
     Alert.alert(
-      'Export Private Key',
-      'Your private key gives full control of your wallet. Never share it with anyone!',
+      '⚠️ Export Private Key',
+      'Your private key gives FULL control of your wallet. Never share it with anyone!\n\nAnyone with your key can steal your funds.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Show Key', style: 'destructive', onPress: async () => {
-          const privateKey = await AsyncStorage.getItem('wallet_private_key');
-          Alert.alert('Private Key', privateKey || 'Not found', [{ text: 'Copy', onPress: async () => {
-            await Clipboard.setStringAsync(privateKey || '');
-          }}, { text: 'Done' }]);
-        }},
+        { 
+          text: 'I Understand, Show Key', 
+          style: 'destructive', 
+          onPress: () => {
+            Alert.alert(
+              'Private Key',
+              privateKey,
+              [
+                { text: 'Copy', onPress: () => Clipboard.setStringAsync(privateKey) },
+                { text: 'Done' }
+              ]
+            );
+          }
+        },
       ]
     );
   };
 
-  const totalValue = holdings.USDC + (holdings.ETH * prices.ETH) + (holdings.BTC * prices.BTC);
+  const totalValue = holdings.USDC + (holdings.ETH * prices.ETH) + (holdings.BTC * prices.BTC) + (holdings.SOL * prices.SOL);
+
+  const getTokenColor = (symbol) => {
+    const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3' };
+    return colors[symbol] || '#00FFF0';
+  };
+
+  const holdingsArray = Object.entries(holdings)
+    .filter(([_, amount]) => amount > 0 && isFinite(amount))
+    .map(([symbol, amount]) => ({
+      symbol,
+      amount,
+      value: symbol === 'USDC' ? amount : amount * (prices[symbol] || 0),
+    }))
+    .sort((a, b) => b.value - a.value);
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#000428', '#004e92']} style={styles.gradient}>
+      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
         <ScrollView style={styles.scroll}>
           <View style={styles.content}>
             <Text style={styles.title}>Wallet</Text>
@@ -103,13 +258,29 @@ export default function WalletPage() {
 
             {/* Total Balance Card */}
             <View style={styles.balanceCard}>
-              <Text style={styles.balanceLabel}>Total Balance</Text>
-              <Text style={styles.balance}>${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-              <View style={styles.networkBadge}>
-                <View style={styles.dot} />
-                <Text style={styles.networkText}>Connected to Base Sepolia</Text>
-              </View>
+              <LinearGradient
+                colors={['rgba(0, 255, 240, 0.1)', 'rgba(0, 184, 212, 0.05)']}
+                style={styles.balanceGradient}
+              >
+                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Text style={styles.balance}>
+                  ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Text>
+                <View style={styles.networkBadge}>
+                  <View style={styles.dot} />
+                  <Text style={styles.networkText}>Connected to Base Sepolia</Text>
+                </View>
+              </LinearGradient>
             </View>
+
+            {/* On-Chain Balance */}
+            {parseFloat(onChainBalance) > 0 && (
+              <View style={styles.onChainCard}>
+                <MaterialCommunityIcons name="ethereum" size={20} color="#627EEA" />
+                <Text style={styles.onChainLabel}>On-Chain ETH:</Text>
+                <Text style={styles.onChainValue}>{parseFloat(onChainBalance).toFixed(6)} ETH</Text>
+              </View>
+            )}
 
             {/* Wallet Address */}
             <View style={styles.addressCard}>
@@ -128,58 +299,54 @@ export default function WalletPage() {
             {/* Action Buttons */}
             <View style={styles.actionsRow}>
               <TouchableOpacity style={styles.actionBtn} onPress={handleDeposit}>
-                <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
-                  <MaterialCommunityIcons name="arrow-down" size={24} color="#00FFF0" />
+                <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 163, 0.15)' }]}>
+                  <MaterialCommunityIcons name="arrow-down" size={24} color="#00FFA3" />
                 </View>
                 <Text style={styles.actionText}>Deposit</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.actionBtn} onPress={handleWithdraw}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => handleWithdraw('USDC')}>
                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 152, 0, 0.15)' }]}>
                   <MaterialCommunityIcons name="arrow-up" size={24} color="#FF9800" />
                 </View>
                 <Text style={styles.actionText}>Withdraw</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/swap')}>
-                <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 184, 212, 0.15)' }]}>
-                  <MaterialCommunityIcons name="swap-horizontal" size={24} color="#00B8D4" />
+              <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
+                <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
+                  <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
                 </View>
-                <Text style={styles.actionText}>Swap</Text>
+                <Text style={styles.actionText}>History</Text>
               </TouchableOpacity>
             </View>
 
             {/* Assets */}
             <Text style={styles.sectionTitle}>Assets</Text>
             <View style={styles.assetsList}>
-              {holdings.USDC > 0 && (
-                <AssetItem 
-                  symbol="USDC" 
-                  name="USD Coin" 
-                  balance={holdings.USDC} 
-                  value={holdings.USDC}
-                  color="#2775CA"
-                />
-              )}
-              {holdings.ETH > 0 && (
-                <AssetItem 
-                  symbol="ETH" 
-                  name="Ethereum" 
-                  balance={holdings.ETH} 
-                  value={holdings.ETH * prices.ETH}
-                  color="#627EEA"
-                />
-              )}
-              {holdings.BTC > 0 && (
-                <AssetItem 
-                  symbol="BTC" 
-                  name="Bitcoin" 
-                  balance={holdings.BTC} 
-                  value={holdings.BTC * prices.BTC}
-                  color="#F7931A"
-                />
-              )}
-              {holdings.USDC === 0 && holdings.ETH === 0 && holdings.BTC === 0 && (
+              {holdingsArray.length > 0 ? (
+                holdingsArray.map(({ symbol, amount, value }) => (
+                  <TouchableOpacity 
+                    key={symbol} 
+                    style={styles.assetItem}
+                    onPress={() => handleWithdraw(symbol)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.assetLeft}>
+                      <View style={[styles.assetIcon, { backgroundColor: `${getTokenColor(symbol)}25` }]}>
+                        <Text style={[styles.assetIconText, { color: getTokenColor(symbol) }]}>{symbol[0]}</Text>
+                      </View>
+                      <View>
+                        <Text style={styles.assetSymbol}>{symbol}</Text>
+                        <Text style={styles.assetName}>Tap to withdraw</Text>
+                      </View>
+                    </View>
+                    <View style={styles.assetRight}>
+                      <Text style={styles.assetBalance}>{amount.toFixed(symbol === 'USDC' ? 2 : 6)}</Text>
+                      <Text style={styles.assetValue}>${value.toFixed(2)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
                 <View style={styles.emptyState}>
                   <MaterialCommunityIcons name="wallet-outline" size={48} color="#444" />
                   <Text style={styles.emptyText}>No assets yet</Text>
@@ -200,67 +367,123 @@ export default function WalletPage() {
             <View style={styles.warningCard}>
               <MaterialCommunityIcons name="shield-check" size={20} color="#00FFF0" />
               <Text style={styles.warningText}>
-                Self-custodial wallet. You control your private keys. Never share them with anyone.
+                Self-custodial wallet. You control your private keys. Never share them.
               </Text>
             </View>
           </View>
         </ScrollView>
       </LinearGradient>
-    </View>
-  );
-}
 
-function AssetItem({ symbol, name, balance, value, color }) {
-  return (
-    <View style={styles.assetItem}>
-      <View style={styles.assetLeft}>
-        <View style={[styles.assetIcon, { backgroundColor: `${color}30` }]}>
-          <Text style={[styles.assetIconText, { color }]}>{symbol[0]}</Text>
+      {/* Withdraw Modal */}
+      <Modal visible={showWithdrawModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Withdraw {withdrawToken}</Text>
+              <TouchableOpacity onPress={() => setShowWithdrawModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>Available: {holdings[withdrawToken]?.toFixed(withdrawToken === 'USDC' ? 2 : 6)} {withdrawToken}</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Recipient Address</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="0x..."
+                placeholderTextColor="#666"
+                value={recipientAddress}
+                onChangeText={setRecipientAddress}
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Amount</Text>
+              <View style={styles.amountRow}>
+                <TextInput
+                  style={[styles.modalInput, { flex: 1 }]}
+                  placeholder="0.00"
+                  placeholderTextColor="#666"
+                  value={withdrawAmount}
+                  onChangeText={setWithdrawAmount}
+                  keyboardType="decimal-pad"
+                />
+                <TouchableOpacity 
+                  style={styles.maxBtn}
+                  onPress={() => setWithdrawAmount(holdings[withdrawToken]?.toString() || '0')}
+                >
+                  <Text style={styles.maxBtnText}>MAX</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.feeInfo}>
+              <Text style={styles.feeLabel}>Network Fee</Text>
+              <Text style={styles.feeValue}>~0.0001 ETH</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.withdrawBtn, sending && styles.withdrawBtnDisabled]}
+              onPress={executeWithdraw}
+              disabled={sending}
+            >
+              <LinearGradient
+                colors={sending ? ['#333', '#222'] : ['#FF9800', '#F57C00']}
+                style={styles.withdrawBtnGradient}
+              >
+                <Text style={styles.withdrawBtnText}>
+                  {sending ? 'Sending...' : `Withdraw ${withdrawToken}`}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <Text style={styles.modalWarning}>
+              ⚠️ Make sure the address is correct. Transactions cannot be reversed.
+            </Text>
+          </View>
         </View>
-        <View>
-          <Text style={styles.assetSymbol}>{symbol}</Text>
-          <Text style={styles.assetName}>{name}</Text>
-        </View>
-      </View>
-      <View style={styles.assetRight}>
-        <Text style={styles.assetBalance}>{balance.toFixed(symbol === 'USDC' ? 2 : 6)}</Text>
-        <Text style={styles.assetValue}>${value.toFixed(2)}</Text>
-      </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#0a0a1a' },
   gradient: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 100 },
-  title: { fontSize: 32, fontWeight: '700', color: '#FFF', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 24 },
-  balanceCard: {
-    backgroundColor: 'rgba(0, 255, 240, 0.05)',
-    borderRadius: 20,
-    padding: 28,
-    marginBottom: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 255, 240, 0.2)',
-  },
-  balanceLabel: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
-  balance: { fontSize: 40, fontWeight: '700', color: '#FFF', marginVertical: 8 },
+  content: { padding: 20, paddingTop: 50, paddingBottom: 100 },
+  title: { fontSize: 28, fontWeight: '700', color: '#FFF' },
+  subtitle: { fontSize: 14, color: '#888', marginBottom: 20 },
+  balanceCard: { borderRadius: 20, overflow: 'hidden', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(0, 255, 240, 0.2)' },
+  balanceGradient: { padding: 28, alignItems: 'center' },
+  balanceLabel: { fontSize: 14, color: '#888' },
+  balance: { fontSize: 36, fontWeight: '700', color: '#FFF', marginVertical: 8 },
   networkBadge: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FFF0' },
-  networkText: { fontSize: 12, color: '#00FFF0' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FFA3' },
+  networkText: { fontSize: 13, color: '#00FFF0' },
+  onChainCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(98, 126, 234, 0.1)',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  onChainLabel: { fontSize: 14, color: '#888' },
+  onChainValue: { fontSize: 14, color: '#627EEA', fontWeight: '600', marginLeft: 'auto' },
   addressCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   addressHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  addressTitle: { fontSize: 13, color: 'rgba(255, 255, 255, 0.6)' },
+  addressTitle: { fontSize: 13, color: '#888' },
   addressBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -282,37 +505,37 @@ const styles = StyleSheet.create({
   },
   actionText: { fontSize: 13, color: '#FFF', fontWeight: '500' },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#FFF', marginBottom: 16 },
-  assetsList: { gap: 8, marginBottom: 28 },
+  assetsList: { gap: 10, marginBottom: 28 },
   assetItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   assetLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  assetIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  assetIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   assetIconText: { fontSize: 18, fontWeight: '700' },
   assetSymbol: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-  assetName: { fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
+  assetName: { fontSize: 12, color: '#888', marginTop: 2 },
   assetRight: { alignItems: 'flex-end' },
   assetBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-  assetValue: { fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 2 },
+  assetValue: { fontSize: 12, color: '#888', marginTop: 2 },
   emptyState: { alignItems: 'center', padding: 32 },
   emptyText: { fontSize: 14, color: '#666', marginTop: 12 },
   securityItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   securityLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   securityText: { fontSize: 15, color: '#FFF' },
@@ -325,4 +548,59 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   warningText: { flex: 1, fontSize: 13, color: 'rgba(255, 255, 255, 0.7)', lineHeight: 18 },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#0d1f3c',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#FFF' },
+  modalLabel: { fontSize: 14, color: '#888', marginBottom: 20 },
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 14, color: '#888', marginBottom: 8 },
+  modalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    color: '#FFF',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  amountRow: { flexDirection: 'row', gap: 10 },
+  maxBtn: {
+    backgroundColor: 'rgba(0, 255, 240, 0.15)',
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+  },
+  maxBtnText: { color: '#00FFF0', fontWeight: '700' },
+  feeInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  feeLabel: { fontSize: 14, color: '#888' },
+  feeValue: { fontSize: 14, color: '#FFF' },
+  withdrawBtn: { borderRadius: 14, overflow: 'hidden', marginBottom: 16 },
+  withdrawBtnDisabled: { opacity: 0.6 },
+  withdrawBtnGradient: { paddingVertical: 18, alignItems: 'center' },
+  withdrawBtnText: { fontSize: 18, fontWeight: '700', color: '#FFF' },
+  modalWarning: { fontSize: 12, color: '#FF9800', textAlign: 'center' },
 });
