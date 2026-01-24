@@ -1,261 +1,164 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel
+from typing import Optional, List
 import os
-import logging
-import httpx
-from supabase import create_client, Client
 from datetime import datetime
+from pymongo import MongoClient
+from bson import ObjectId
+import secrets
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# MongoDB connection
+client = MongoClient(os.getenv('MONGO_URL', 'mongodb://localhost:27017'))
+db = client['jaspr_db']
 
-# Supabase client
-supabase_url = os.environ.get('SUPABASE_URL')
-supabase_key = os.environ.get('SUPABASE_SERVICE_KEY')
-supabase: Client = create_client(supabase_url, supabase_key)
-
-# Create the main app
-app = FastAPI(title="JASPR Crypto Wallet API")
-api_router = APIRouter(prefix="/api")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Models
-class UserProfile(BaseModel):
-    privy_did: str
-    email: Optional[str] = None
-    username: Optional[str] = None
-
-class WalletCreate(BaseModel):
-    address: str
-    privy_did: str
-    chain: str = "base"
-
-class WalletResponse(BaseModel):
-    id: str
-    address: str
-    chain: str
-    balances: dict = {}
-
-class SendTransaction(BaseModel):
-    from_address: str
-    to_address: str
-    amount: str
-    token_symbol: str = "ETH"
-
-class SwapQuoteRequest(BaseModel):
-    from_token: str
-    to_token: str
-    amount: str
-    wallet_address: str
-
-class TransactionResponse(BaseModel):
-    id: str
-    tx_hash: str
-    from_address: str
-    to_address: str
-    amount: str
-    token_symbol: str
-    tx_type: str
-    status: str
-    created_at: str
-
-# Auth middleware
-async def verify_privy_token(authorization: Optional[str] = Header(None)):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="No authorization header")
-    
-    token = authorization.replace("Bearer ", "")
-    # In production, verify token with Privy
-    # For MVP, we'll trust the token
-    return token
-
-# Routes
-@api_router.get("/")
-async def root():
-    return {"message": "JASPR API", "version": "1.0.0"}
-
-@api_router.post("/users/profile")
-async def create_or_update_profile(
-    profile: UserProfile,
-    token: str = Depends(verify_privy_token)
-):
-    """Create or update user profile"""
-    try:
-        # Check if profile exists
-        response = supabase.table('profiles').select('*').eq('privy_did', profile.privy_did).execute()
-        
-        if response.data:
-            # Update existing profile
-            result = supabase.table('profiles').update({
-                'email': profile.email,
-                'username': profile.username
-            }).eq('privy_did', profile.privy_did).execute()
-        else:
-            # Create new profile
-            result = supabase.table('profiles').insert({
-                'privy_did': profile.privy_did,
-                'email': profile.email,
-                'username': profile.username
-            }).execute()
-        
-        return {"success": True, "profile": result.data[0] if result.data else None}
-    except Exception as e:
-        logger.error(f"Error creating/updating profile: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/users/profile/{privy_did}")
-async def get_profile(privy_did: str):
-    """Get user profile"""
-    try:
-        response = supabase.table('profiles').select('*').eq('privy_did', privy_did).execute()
-        if not response.data:
-            raise HTTPException(status_code=404, detail="Profile not found")
-        return response.data[0]
-    except Exception as e:
-        logger.error(f"Error getting profile: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/wallets")
-async def create_wallet(
-    wallet: WalletCreate,
-    token: str = Depends(verify_privy_token)
-):
-    """Register a wallet for a user"""
-    try:
-        # Check if wallet already exists
-        response = supabase.table('wallets').select('*').eq('address', wallet.address).execute()
-        
-        if response.data:
-            return {"success": True, "wallet": response.data[0]}
-        
-        # Create new wallet
-        result = supabase.table('wallets').insert({
-            'privy_did': wallet.privy_did,
-            'address': wallet.address,
-            'chain': wallet.chain
-        }).execute()
-        
-        return {"success": True, "wallet": result.data[0] if result.data else None}
-    except Exception as e:
-        logger.error(f"Error creating wallet: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/wallets/{privy_did}")
-async def get_wallets(privy_did: str):
-    """Get all wallets for a user"""
-    try:
-        response = supabase.table('wallets').select('*').eq('privy_did', privy_did).execute()
-        return {"wallets": response.data if response.data else []}
-    except Exception as e:
-        logger.error(f"Error getting wallets: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/balances/{address}")
-async def get_balance(address: str):
-    """Get token balances for an address on Base"""
-    try:
-        # For MVP, return mock balances
-        # In production, query Base chain via RPC or API
-        return {
-            "address": address,
-            "chain": "base",
-            "balances": {
-                "ETH": "0.5",
-                "USDC": "1250.50"
-            }
-        }
-    except Exception as e:
-        logger.error(f"Error getting balance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/swap/quote")
-async def get_swap_quote(request: SwapQuoteRequest):
-    """Get swap quote from 0x API"""
-    try:
-        # 0x API endpoint for Base chain
-        base_url = "https://api.0x.org/swap/v1/quote"
-        
-        # Token addresses on Base
-        tokens = {
-            "ETH": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-            "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-        }
-        
-        params = {
-            "sellToken": tokens.get(request.from_token, tokens["ETH"]),
-            "buyToken": tokens.get(request.to_token, tokens["USDC"]),
-            "sellAmount": request.amount,
-            "takerAddress": request.wallet_address
-        }
-        
-        # For MVP, return mock quote
-        # In production, call 0x API
-        return {
-            "from_token": request.from_token,
-            "to_token": request.to_token,
-            "from_amount": request.amount,
-            "to_amount": "1250.00",
-            "price": "2500.00",
-            "gas_estimate": "0.001",
-            "quote_id": "mock-quote-123"
-        }
-    except Exception as e:
-        logger.error(f"Error getting swap quote: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/transactions")
-async def create_transaction(
-    tx: SendTransaction,
-    token: str = Depends(verify_privy_token)
-):
-    """Record a transaction"""
-    try:
-        result = supabase.table('transactions').insert({
-            'from_address': tx.from_address,
-            'to_address': tx.to_address,
-            'amount': tx.amount,
-            'token_symbol': tx.token_symbol,
-            'tx_type': 'send',
-            'status': 'pending',
-            'tx_hash': f"0xmock{datetime.now().timestamp()}"
-        }).execute()
-        
-        return {"success": True, "transaction": result.data[0] if result.data else None}
-    except Exception as e:
-        logger.error(f"Error creating transaction: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/transactions/{address}")
-async def get_transactions(address: str, limit: int = 10):
-    """Get transaction history for an address"""
-    try:
-        response = supabase.table('transactions')\
-            .select('*')\
-            .or_(f'from_address.eq.{address},to_address.eq.{address}')\
-            .order('created_at', desc=True)\
-            .limit(limit)\
-            .execute()
-        
-        return {"transactions": response.data if response.data else []}
-    except Exception as e:
-        logger.error(f"Error getting transactions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Include router
-app.include_router(api_router)
+app = FastAPI(title="JASPR API")
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Models
+class UserCreate(BaseModel):
+    email: str
+    wallet_address: str
+
+class Transaction(BaseModel):
+    wallet_address: str
+    type: str  # 'swap', 'send', 'receive'
+    from_token: str
+    to_token: str
+    amount: str
+    status: str = 'completed'
+
+# Routes
+@app.get("/")
+def root():
+    return {"message": "JASPR API Running", "version": "1.0.0"}
+
+@app.post("/api/auth/signup")
+def signup(user: UserCreate):
+    # Check if user exists
+    existing = db.users.find_one({"email": user.email})
+    if existing:
+        return {"success": True, "user": {
+            "email": user.email,
+            "wallet_address": existing['wallet_address'],
+            "id": str(existing['_id'])
+        }}
+    
+    # Create new user
+    user_doc = {
+        "email": user.email,
+        "wallet_address": user.wallet_address,
+        "created_at": datetime.utcnow(),
+        "usdc_balance": 100.0,  # Start with 100 USDC
+        "token_balances": {}
+    }
+    result = db.users.insert_one(user_doc)
+    
+    return {
+        "success": True,
+        "user": {
+            "email": user.email,
+            "wallet_address": user.wallet_address,
+            "id": str(result.inserted_id)
+        }
+    }
+
+@app.get("/api/users/{wallet_address}/balance")
+def get_balance(wallet_address: str):
+    user = db.users.find_one({"wallet_address": wallet_address})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "wallet_address": wallet_address,
+        "usdc_balance": user.get('usdc_balance', 0),
+        "token_balances": user.get('token_balances', {})
+    }
+
+@app.post("/api/swap")
+def swap(tx: Transaction):
+    user = db.users.find_one({"wallet_address": tx.wallet_address})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    amount = float(tx.amount)
+    
+    # Simple mock swap logic
+    if tx.from_token == 'USDC':
+        # Buying token with USDC
+        if user.get('usdc_balance', 0) < amount:
+            raise HTTPException(status_code=400, detail="Insufficient USDC balance")
+        
+        # Deduct USDC
+        db.users.update_one(
+            {"wallet_address": tx.wallet_address},
+            {"$inc": {"usdc_balance": -amount}}
+        )
+        
+        # Add token (mock exchange rate: 1 USDC = 0.00002 BTC, etc.)
+        token_amount = amount * 0.00002 if tx.to_token == 'BTC' else amount * 0.0003
+        db.users.update_one(
+            {"wallet_address": tx.wallet_address},
+            {"$inc": {f"token_balances.{tx.to_token}": token_amount}}
+        )
+    else:
+        # Selling token for USDC
+        current_balance = user.get('token_balances', {}).get(tx.from_token, 0)
+        if current_balance < amount:
+            raise HTTPException(status_code=400, detail=f"Insufficient {tx.from_token} balance")
+        
+        # Deduct token
+        db.users.update_one(
+            {"wallet_address": tx.wallet_address},
+            {"$inc": {f"token_balances.{tx.from_token}": -amount}}
+        )
+        
+        # Add USDC
+        usdc_amount = amount * 50000 if tx.from_token == 'BTC' else amount * 3000
+        db.users.update_one(
+            {"wallet_address": tx.wallet_address},
+            {"$inc": {"usdc_balance": usdc_amount}}
+        )
+    
+    # Record transaction
+    tx_doc = {
+        "wallet_address": tx.wallet_address,
+        "type": tx.type,
+        "from_token": tx.from_token,
+        "to_token": tx.to_token,
+        "amount": tx.amount,
+        "status": "completed",
+        "tx_hash": f"0x{secrets.token_hex(32)}",
+        "created_at": datetime.utcnow()
+    }
+    db.transactions.insert_one(tx_doc)
+    
+    return {
+        "success": True,
+        "tx_hash": tx_doc['tx_hash'],
+        "message": f"Swapped {tx.amount} {tx.from_token} for {tx.to_token}"
+    }
+
+@app.get("/api/transactions/{wallet_address}")
+def get_transactions(wallet_address: str, limit: int = 10):
+    txs = list(db.transactions.find(
+        {"wallet_address": wallet_address}
+    ).sort("created_at", -1).limit(limit))
+    
+    for tx in txs:
+        tx['_id'] = str(tx['_id'])
+        tx['created_at'] = tx['created_at'].isoformat()
+    
+    return {"transactions": txs}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy", "database": "connected"}

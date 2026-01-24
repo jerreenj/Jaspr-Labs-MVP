@@ -1,10 +1,14 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
+import axios from 'axios';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://jaspr-swap.preview.emergentagent.com';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -28,15 +32,22 @@ export default function AuthPage() {
       } else {
         wallet = ethers.Wallet.createRandom();
         await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
-        await AsyncStorage.setItem('wallet_address', wallet.address);
       }
 
+      await AsyncStorage.setItem('wallet_address', wallet.address);
       await AsyncStorage.setItem('user_email', email);
-      await AsyncStorage.setItem('is_logged_in', 'true');
 
+      // Register user in backend
+      await axios.post(`${BACKEND_URL}/api/auth/signup`, {
+        email: email,
+        wallet_address: wallet.address
+      });
+
+      await AsyncStorage.setItem('is_logged_in', 'true');
       router.replace('/(tabs)/home');
     } catch (error) {
-      Alert.alert('Error', error.message);
+      console.error('Login error:', error);
+      Alert.alert('Error', error.message || 'Failed to login');
     } finally {
       setLoading(false);
     }
@@ -70,6 +81,7 @@ export default function AuthPage() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!loading}
           />
 
           <TouchableOpacity 
@@ -81,17 +93,19 @@ export default function AuthPage() {
               colors={['#00d4ff', '#0099cc']}
               style={styles.buttonGradient}
             >
-              <Text style={styles.buttonText}>
-                {loading ? 'Creating Wallet...' : 'Continue'}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Continue</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
         <View style={styles.info}>
-          <MaterialCommunityIcons name="information" size={20} color="#00d4ff" />
+          <MaterialCommunityIcons name="gift" size={20} color="#00d4ff" />
           <Text style={styles.infoText}>
-            A secure wallet will be created for you automatically
+            Get 100 USDC free to start trading!
           </Text>
         </View>
       </View>

@@ -1,20 +1,59 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://jaspr-swap.preview.emergentagent.com';
 
 export default function TradePage() {
-  const [mode, setMode] = useState('BUY'); // BUY or SELL
+  const [mode, setMode] = useState('BUY');
   const [amount, setAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState('BTC');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleTrade = () => {
+  useEffect(() => {
+    loadWallet();
+  }, []);
+
+  const loadWallet = async () => {
+    const address = await AsyncStorage.getItem('wallet_address');
+    setWalletAddress(address || '');
+  };
+
+  const handleTrade = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-    Alert.alert('Coming Soon', 'Trading will be available after contract deployment');
+
+    setLoading(true);
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/swap`, {
+        wallet_address: walletAddress,
+        type: 'swap',
+        from_token: mode === 'BUY' ? 'USDC' : selectedToken,
+        to_token: mode === 'BUY' ? selectedToken : 'USDC',
+        amount: amount,
+      });
+
+      Alert.alert(
+        'Success!',
+        `${mode === 'BUY' ? 'Bought' : 'Sold'} ${selectedToken}\nTx: ${response.data.tx_hash.slice(0, 10)}...`,
+        [{ text: 'OK', onPress: () => setAmount('') }]
+      );
+    } catch (error) {
+      console.error('Trade error:', error);
+      Alert.alert('Error', error.response?.data?.detail || 'Trade failed');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const tokens = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'TON', 'MATIC'];
 
   return (
     <LinearGradient
@@ -39,12 +78,21 @@ export default function TradePage() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.tokenSelector}>
-          <Text style={styles.label}>Token</Text>
-          <TouchableOpacity style={styles.tokenButton}>
-            <Text style={styles.tokenText}>{selectedToken}/USDC</Text>
-            <MaterialCommunityIcons name="chevron-down" size={20} color="#888" />
-          </TouchableOpacity>
+        <View style={styles.card}>
+          <Text style={styles.label}>Select Token</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tokenScroll}>
+            {tokens.map((token) => (
+              <TouchableOpacity
+                key={token}
+                style={[styles.tokenChip, selectedToken === token && styles.tokenChipActive]}
+                onPress={() => setSelectedToken(token)}
+              >
+                <Text style={[styles.tokenChipText, selectedToken === token && styles.tokenChipTextActive]}>
+                  {token}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.card}>
@@ -59,34 +107,27 @@ export default function TradePage() {
           />
         </View>
 
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Price</Text>
-            <Text style={styles.infoValue}>$50,000</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Fee (0.1%)</Text>
-            <Text style={styles.infoValue}>~$0.05</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>You'll receive</Text>
-            <Text style={styles.infoValue}>0.00 {mode === 'BUY' ? selectedToken : 'USDC'}</Text>
-          </View>
-        </View>
-
         <View style={styles.banner}>
           <MaterialCommunityIcons name="information" size={20} color="#00d4ff" />
           <Text style={styles.bannerText}>
-            Testnet token: j{selectedToken}
+            Mock trading - Instant execution
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.tradeButton} onPress={handleTrade}>
+        <TouchableOpacity 
+          style={styles.tradeButton} 
+          onPress={handleTrade}
+          disabled={loading}
+        >
           <LinearGradient
             colors={mode === 'BUY' ? ['#00d4ff', '#0099cc'] : ['#ff4444', '#cc0000']}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>{mode} {selectedToken}</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>{mode} {selectedToken}</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
@@ -118,19 +159,6 @@ const styles = StyleSheet.create({
   },
   modeText: { fontSize: 16, fontWeight: 'bold', color: '#888' },
   modeTextActive: { color: '#00d4ff' },
-  tokenSelector: { marginBottom: 16 },
-  label: { fontSize: 14, color: '#888', marginBottom: 8 },
-  tokenButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  tokenText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
@@ -139,24 +167,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0, 212, 255, 0.1)',
   },
+  label: { fontSize: 14, color: '#888', marginBottom: 12 },
+  tokenScroll: {
+    flexDirection: 'row',
+  },
+  tokenChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginRight: 8,
+  },
+  tokenChipActive: {
+    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: '#00d4ff',
+  },
+  tokenChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#888',
+  },
+  tokenChipTextActive: {
+    color: '#00d4ff',
+  },
   input: {
     fontSize: 32,
     color: '#fff',
     fontWeight: 'bold',
   },
-  infoCard: {
-    backgroundColor: 'rgba(0, 212, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    gap: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  infoLabel: { fontSize: 14, color: '#888' },
-  infoValue: { fontSize: 14, color: '#fff', fontWeight: '600' },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
