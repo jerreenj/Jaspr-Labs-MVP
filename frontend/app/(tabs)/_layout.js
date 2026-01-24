@@ -16,7 +16,7 @@ export default function TabsLayout() {
           height: 80,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}
@@ -57,24 +57,27 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Hide trade, portfolio, settings from tab bar */}
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="history" size={size} color={color} />
+          ),
+        }}
+      />
+      {/* Hide trade from tab bar - accessed via markets */}
       <Tabs.Screen
         name="trade"
-        options={{
-          href: null, // Hide from tab bar
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="portfolio"
-        options={{
-          href: null, // Hide from tab bar
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings"
-        options={{
-          href: null, // Hide from tab bar
-        }}
+        options={{ href: null }}
       />
     </Tabs>
   );
