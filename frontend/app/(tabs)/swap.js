@@ -114,15 +114,8 @@ export default function SwapPage() {
       return;
     }
 
-    // Confirm swap
-    Alert.alert(
-      'Confirm Swap',
-      `Swap ${amount} ${fromToken} for ~${estimatedOutput} ${toToken}?\n\nFee: 0.3%\nNetwork: Base Sepolia`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', onPress: () => performSwap() },
-      ]
-    );
+    // Execute swap directly (confirmation shown after success)
+    performSwap();
   };
 
   const performSwap = async () => {
