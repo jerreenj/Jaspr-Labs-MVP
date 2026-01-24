@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,8 +13,8 @@ export default function HomePage() {
   const [prices, setPrices] = useState({});
   const [swapCount, setSwapCount] = useState(0);
   const [recentTrades, setRecentTrades] = useState([]);
+  const [showMenu, setShowMenu] = useState(false);
 
-  // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadUserData();
@@ -23,24 +23,19 @@ export default function HomePage() {
 
   const loadUserData = useCallback(async () => {
     try {
-      // Load demo balance
       const demoBalance = await AsyncStorage.getItem('demo_balance');
       const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
       
-      // Load token holdings
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
-      // Load swap count
       const count = await AsyncStorage.getItem('swap_count');
       setSwapCount(count ? parseInt(count) : 0);
       
-      // Load recent trades
       const history = await AsyncStorage.getItem('tx_history');
       const txHistory = history ? JSON.parse(history) : [];
       setRecentTrades(txHistory.slice(0, 3));
       
-      // Fetch live prices for all held tokens
       const tokenIds = ['ethereum', 'bitcoin', 'solana', 'binancecoin', 'ripple', 'cardano', 'dogecoin', 'avalanche-2'];
       try {
         const response = await fetch(
@@ -61,7 +56,6 @@ export default function HomePage() {
         
         setPrices(priceMap);
         
-        // Calculate total portfolio value
         let total = usdcBalance;
         Object.entries(tokenHoldings).forEach(([symbol, amount]) => {
           if (amount > 0 && priceMap[symbol]) {
@@ -74,7 +68,6 @@ export default function HomePage() {
         setTotalValue(usdcBalance);
       }
       
-      // Build holdings with USDC
       const allHoldings = { USDC: usdcBalance, ...tokenHoldings };
       setHoldings(allHoldings);
     } catch (error) {
@@ -90,6 +83,7 @@ export default function HomePage() {
   };
 
   const handleLogout = async () => {
+    setShowMenu(false);
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
@@ -148,8 +142,8 @@ export default function HomePage() {
                 <Text style={styles.greeting}>Welcome</Text>
                 <Text style={styles.subGreeting}>Your portfolio is ready</Text>
               </View>
-              <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                <MaterialCommunityIcons name="logout" size={22} color="#FF4444" />
+              <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuBtn}>
+                <MaterialCommunityIcons name="menu" size={28} color="#FFF" />
               </TouchableOpacity>
             </View>
 
@@ -264,17 +258,17 @@ export default function HomePage() {
                     <View key={index} style={styles.activityItem}>
                       <View style={[
                         styles.activityIcon,
-                        { backgroundColor: trade.type === 'buy' ? 'rgba(0,255,163,0.15)' : 'rgba(255,68,68,0.15)' }
+                        { backgroundColor: trade.type === 'buy' ? 'rgba(0,255,163,0.15)' : trade.type === 'sell' ? 'rgba(255,68,68,0.15)' : 'rgba(0,255,240,0.15)' }
                       ]}>
                         <MaterialCommunityIcons 
-                          name={trade.type === 'buy' ? 'arrow-bottom-left' : 'arrow-top-right'} 
+                          name={trade.type === 'buy' ? 'arrow-bottom-left' : trade.type === 'sell' ? 'arrow-top-right' : 'swap-horizontal'} 
                           size={18} 
-                          color={trade.type === 'buy' ? '#00FFA3' : '#FF4444'} 
+                          color={trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0'} 
                         />
                       </View>
                       <View style={styles.activityContent}>
                         <Text style={styles.activityTitle}>
-                          {trade.type === 'buy' ? 'Bought' : 'Sold'} {trade.symbol}
+                          {trade.type === 'buy' ? 'Bought' : trade.type === 'sell' ? 'Sold' : 'Swapped'} {trade.symbol || trade.toToken}
                         </Text>
                         <Text style={styles.activityTime}>
                           {new Date(trade.timestamp).toLocaleDateString()}
@@ -282,7 +276,7 @@ export default function HomePage() {
                       </View>
                       <Text style={[
                         styles.activityAmount,
-                        { color: trade.type === 'buy' ? '#00FFA3' : '#FF4444' }
+                        { color: trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0' }
                       ]}>
                         {trade.type === 'buy' ? '-' : '+'}${trade.usdAmount?.toFixed(2) || '0.00'}
                       </Text>
@@ -308,6 +302,52 @@ export default function HomePage() {
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* Menu Modal */}
+      <Modal visible={showMenu} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowMenu(false)}>
+          <View style={styles.menuContainer}>
+            <View style={styles.menuCard}>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  router.push('/(tabs)/history');
+                }}
+              >
+                <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
+                <Text style={styles.menuItemText}>Transaction History</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
+              </TouchableOpacity>
+              
+              <View style={styles.menuDivider} />
+              
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  router.push('/(tabs)/settings');
+                }}
+              >
+                <MaterialCommunityIcons name="cog" size={24} color="#888" />
+                <Text style={styles.menuItemText}>Settings</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
+              </TouchableOpacity>
+              
+              <View style={styles.menuDivider} />
+              
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={handleLogout}
+              >
+                <MaterialCommunityIcons name="logout" size={24} color="#FF4444" />
+                <Text style={[styles.menuItemText, { color: '#FF4444' }]}>Logout</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -325,7 +365,11 @@ const styles = StyleSheet.create({
   },
   greeting: { fontSize: 28, fontWeight: '700', color: '#FFF' },
   subGreeting: { fontSize: 14, color: '#888', marginTop: 4 },
-  logoutBtn: { padding: 8 },
+  menuBtn: { 
+    padding: 8, 
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+  },
   portfolioCard: {
     borderRadius: 20,
     overflow: 'hidden',
@@ -441,4 +485,34 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 24, fontWeight: '700', color: '#FFF', marginTop: 8 },
   statLabel: { fontSize: 12, color: '#888', marginTop: 4 },
+  // Menu Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 100,
+    paddingRight: 20,
+  },
+  menuContainer: {},
+  menuCard: {
+    backgroundColor: '#1a2a4a',
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 220,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 240, 0.2)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 14,
+  },
+  menuItemText: { flex: 1, fontSize: 16, color: '#FFF', fontWeight: '500' },
+  menuDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 8,
+  },
 });
