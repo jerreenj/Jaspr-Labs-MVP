@@ -684,7 +684,48 @@ const styles = StyleSheet.create({
   assetBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
   assetValue: { fontSize: 12, color: '#888', marginTop: 2 },
   emptyState: { alignItems: 'center', padding: 32 },
-  emptyText: { fontSize: 14, color: '#666', marginTop: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#888', marginTop: 12 },
+  emptyText: { fontSize: 14, color: '#666', marginTop: 8, textAlign: 'center', lineHeight: 20 },
+  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
+  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  emptyButtonText: { fontSize: 16, fontWeight: '700', color: '#000' },
+  // Info card
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(0, 184, 212, 0.1)',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 212, 0.2)',
+  },
+  infoText: { flex: 1, fontSize: 13, color: '#00B8D4', lineHeight: 18 },
+  // On-chain logo
+  onChainLogo: { width: 24, height: 24, borderRadius: 12 },
+  // Asset logo styles
+  assetLogoContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  assetLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  assetIconFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Action button subtext
+  actionSubtext: { fontSize: 10, color: '#666', marginTop: 2 },
   securityItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
