@@ -73,6 +73,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     letterSpacing: 2,
     marginBottom: 8,
+    fontFamily: 'Inter_700Bold',
   },
   tagline: {
     fontSize: 16,
