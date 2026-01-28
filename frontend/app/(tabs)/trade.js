@@ -254,6 +254,25 @@ export default function TradePage() {
       await AsyncStorage.setItem('token_holdings', JSON.stringify(tokenHoldings));
       await AsyncStorage.setItem('demo_balance', newBalance.toString());
       
+      // Save purchase info (average cost basis)
+      if (mode === 'BUY') {
+        const purchaseInfo = JSON.parse(await AsyncStorage.getItem('purchase_info') || '{}');
+        const existingCost = purchaseInfo[symbol]?.totalCost || 0;
+        const existingAmount = purchaseInfo[symbol]?.totalAmount || 0;
+        purchaseInfo[symbol] = {
+          totalCost: existingCost + inputAmount,
+          totalAmount: existingAmount + tokensBought,
+          avgPrice: (existingCost + inputAmount) / (existingAmount + tokensBought),
+          lastPrice: price,
+        };
+        await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
+      } else if (mode === 'SELL' && newHolding === 0) {
+        // Clear purchase info if sold all
+        const purchaseInfo = JSON.parse(await AsyncStorage.getItem('purchase_info') || '{}');
+        delete purchaseInfo[symbol];
+        await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
+      }
+      
       // Trade rewards
       const currentCount = swapCount;
       if (currentCount < 10) {
