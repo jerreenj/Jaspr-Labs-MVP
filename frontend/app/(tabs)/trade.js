@@ -265,8 +265,18 @@ export default function TradePage() {
                 <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
               </TouchableOpacity>
               <View style={styles.headerCenter}>
-                <View style={[styles.tokenIconLarge, { backgroundColor: `${getTokenColor()}30` }]}>
-                  <Text style={[styles.tokenIconText, { color: getTokenColor() }]}>{symbol[0]}</Text>
+                <View style={styles.logoContainer}>
+                  {logo && !imageError ? (
+                    <Image 
+                      source={{ uri: logo }} 
+                      style={styles.tokenLogoLarge}
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <View style={[styles.tokenIconLarge, { backgroundColor: `${getTokenColor()}30` }]}>
+                      <Text style={[styles.tokenIconText, { color: getTokenColor() }]}>{symbol[0]}</Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.headerTitle}>{symbol}/USDC</Text>
               </View>
