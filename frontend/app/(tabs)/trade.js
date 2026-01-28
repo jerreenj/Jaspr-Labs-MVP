@@ -144,16 +144,33 @@ export default function TradePage() {
       const count = await AsyncStorage.getItem('swap_count');
       setSwapCount(count ? parseInt(count) : 0);
       
-      // Fallback prices
+      // Comprehensive fallback prices for all 25 tokens
       const FALLBACK = {
         bitcoin: { usd: 96500, change: 2.5, high: 97200, low: 95100, vol: 28500000000 },
         ethereum: { usd: 3650, change: 1.8, high: 3720, low: 3580, vol: 15200000000 },
-        solana: { usd: 185, change: 3.2, high: 192, low: 178, vol: 3800000000 },
+        tether: { usd: 1.00, change: 0.01, high: 1.001, low: 0.999, vol: 45000000000 },
         binancecoin: { usd: 695, change: -0.5, high: 705, low: 682, vol: 1200000000 },
+        solana: { usd: 185, change: 3.2, high: 192, low: 178, vol: 3800000000 },
+        'usd-coin': { usd: 1.00, change: 0, high: 1.001, low: 0.999, vol: 5000000000 },
         ripple: { usd: 2.35, change: 1.2, high: 2.42, low: 2.28, vol: 4500000000 },
-        cardano: { usd: 0.98, change: -1.1, high: 1.02, low: 0.95, vol: 890000000 },
         dogecoin: { usd: 0.38, change: 4.5, high: 0.41, low: 0.35, vol: 2100000000 },
+        cardano: { usd: 0.98, change: -1.1, high: 1.02, low: 0.95, vol: 890000000 },
         'avalanche-2': { usd: 38.5, change: 2.1, high: 40.2, low: 36.8, vol: 520000000 },
+        tron: { usd: 0.25, change: 1.5, high: 0.26, low: 0.24, vol: 800000000 },
+        'the-open-network': { usd: 5.80, change: 0.8, high: 5.95, low: 5.65, vol: 450000000 },
+        polkadot: { usd: 7.20, change: -0.8, high: 7.45, low: 7.05, vol: 380000000 },
+        'matic-network': { usd: 0.52, change: -0.3, high: 0.54, low: 0.50, vol: 320000000 },
+        chainlink: { usd: 14.50, change: 2.3, high: 15.10, low: 14.00, vol: 420000000 },
+        'shiba-inu': { usd: 0.000022, change: 5.2, high: 0.000024, low: 0.000020, vol: 650000000 },
+        'wrapped-bitcoin': { usd: 96400, change: 2.4, high: 97100, low: 95000, vol: 180000000 },
+        litecoin: { usd: 108, change: 0.7, high: 112, low: 105, vol: 580000000 },
+        uniswap: { usd: 12.80, change: 1.9, high: 13.20, low: 12.40, vol: 210000000 },
+        dai: { usd: 1.00, change: 0, high: 1.001, low: 0.999, vol: 300000000 },
+        'internet-computer': { usd: 11.50, change: 3.1, high: 12.00, low: 11.00, vol: 180000000 },
+        near: { usd: 5.20, change: 2.8, high: 5.45, low: 5.00, vol: 320000000 },
+        aptos: { usd: 9.80, change: 4.2, high: 10.30, low: 9.30, vol: 280000000 },
+        pepe: { usd: 0.000018, change: 8.5, high: 0.000020, low: 0.000016, vol: 950000000 },
+        arbitrum: { usd: 0.92, change: 1.2, high: 0.96, low: 0.88, vol: 350000000 },
       };
 
       try {
