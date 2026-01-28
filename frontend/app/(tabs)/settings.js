@@ -13,12 +13,6 @@ export default function SettingsPage() {
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadSettings();
-    }, [])
-  );
-
   const loadSettings = async () => {
     try {
       const address = await AsyncStorage.getItem('wallet_address');
@@ -27,6 +21,12 @@ export default function SettingsPage() {
       console.error('Load settings error:', error);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+    }, [])
+  );
 
   const handleExportKey = () => {
     Alert.alert(
