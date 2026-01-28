@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   balanceCard: { borderRadius: 20, overflow: 'hidden', marginBottom: 16, borderWidth: 1, borderColor: '#222', backgroundColor: '#111' },
   balanceGradient: { padding: 28, alignItems: 'center' },
   balanceLabel: { fontSize: 14, color: '#888' },
-  balance: { fontSize: 36, fontWeight: '700', color: '#FFF', marginVertical: 8 },
+  balance: { fontSize: 36, fontWeight: '700', color: '#FFF', marginVertical: 8, fontFamily: 'Inter_700Bold' },
   networkBadge: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C853' },
   networkText: { fontSize: 13, color: '#888' },
