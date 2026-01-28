@@ -105,6 +105,10 @@ export default function AuthPage() {
       const wallet = await generateWallet();
       console.log('[AUTH] Wallet created:', wallet.address);
       
+      // Try to sync with backend
+      const backendResult = await syncAccountWithBackend(wallet.address);
+      console.log('[AUTH] Backend sync result:', backendResult);
+      
       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
       await AsyncStorage.setItem('wallet_address', wallet.address);
       await AsyncStorage.setItem('username', 'User');
