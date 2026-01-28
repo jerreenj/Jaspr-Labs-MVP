@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
   },
-  maxBtnText: { color: '#00FFF0', fontWeight: '700' },
+  maxBtnText: { color: '#888', fontWeight: '700' },
   feeInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
