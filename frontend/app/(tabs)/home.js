@@ -313,7 +313,7 @@ export default function HomePage() {
                   router.push('/(tabs)/history');
                 }}
               >
-                <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
+                <MaterialCommunityIcons name="history" size={24} color="#FFF" />
                 <Text style={styles.menuItemText}>Transaction History</Text>
                 <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
               </TouchableOpacity>
