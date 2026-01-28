@@ -122,7 +122,7 @@ export default function HomePage() {
           style: 'destructive',
           onPress: async () => {
             await AsyncStorage.clear();
-            router.replace('/');
+            router.replace('/auth');
           }
         }
       ]
