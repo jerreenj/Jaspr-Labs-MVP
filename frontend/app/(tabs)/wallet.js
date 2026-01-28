@@ -578,7 +578,7 @@ function AssetItem({ symbol, amount, value, onPress }) {
   
   const getTokenColor = (sym) => {
     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
-    return colors[sym] || '#00FFF0';
+    return colors[sym] || '#888';
   };
   
   return (
