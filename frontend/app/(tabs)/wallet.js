@@ -71,12 +71,17 @@ export default function WalletPage() {
       const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
-      setHoldings({
+      // Trading balance (for trading functionality)
+      setTradingBalance({
         USDC: usdcBalance,
         ETH: tokenHoldings.ETH || 0,
         BTC: tokenHoldings.BTC || 0,
         SOL: tokenHoldings.SOL || 0,
       });
+      
+      // Self-custodial wallet holdings (stored separately, starts empty)
+      const custodialHoldings = await AsyncStorage.getItem('wallet_holdings');
+      setWalletHoldings(custodialHoldings ? JSON.parse(custodialHoldings) : {});
 
       // Fetch on-chain ETH balance
       if (address) {
@@ -112,15 +117,19 @@ export default function WalletPage() {
   };
 
   const handleDeposit = () => {
-    Alert.alert(
-      'Deposit Crypto',
-      `Send tokens to your wallet:\n\n${walletAddress}\n\nNetwork: Base Sepolia Testnet\n\nNote: You need Base Sepolia ETH for gas fees.`,
-      [
-        { text: 'Copy Address', onPress: copyAddress },
-        { text: 'Get Test ETH', onPress: () => Alert.alert('Faucet', 'Visit https://www.alchemy.com/faucets/base-sepolia to get free test ETH') },
-        { text: 'OK' }
-      ]
-    );
+    setShowDepositModal(true);
+  };
+
+  const openMetaMask = () => {
+    // Deep link to MetaMask (placeholder - would need real integration)
+    const metamaskDeepLink = 'https://metamask.app.link/';
+    Linking.openURL(metamaskDeepLink).catch(() => {
+      Alert.alert(
+        'MetaMask Not Found',
+        'Please install MetaMask to deposit funds from your exchange wallet.',
+        [{ text: 'OK' }]
+      );
+    });
   };
 
   const handleWithdraw = (token) => {
