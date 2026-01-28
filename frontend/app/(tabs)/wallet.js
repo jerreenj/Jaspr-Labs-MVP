@@ -340,7 +340,7 @@ export default function WalletPage() {
             {/* Wallet Address */}
             <View style={styles.addressCard}>
               <View style={styles.addressHeader}>
-                <MaterialCommunityIcons name="wallet" size={20} color="#00FFF0" />
+                <MaterialCommunityIcons name="wallet" size={20} color="#888" />
                 <Text style={styles.addressTitle}>Your Wallet Address</Text>
               </View>
               <TouchableOpacity onPress={copyAddress} style={styles.addressBox}>
