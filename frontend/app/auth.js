@@ -243,9 +243,26 @@ export default function AuthPage() {
               // Create wallet for the user
               const wallet = await generateWallet();
               
-              // Try to sync with backend
+              // Create account on backend first
               const backendResult = await syncAccountWithBackend(wallet.address);
-              console.log('[AUTH] Backend sync result:', backendResult);
+              console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
+              
+              // If backend returned existing account with data, use that
+              let initialBalance = 10000;
+              let holdings = {};
+              let purchaseInfo = {};
+              let swapCount = 0;
+              let txHistory = [];
+              
+              if (backendResult?.account && !backendResult.is_new) {
+                // Existing account - restore data
+                initialBalance = backendResult.account.balance || 10000;
+                holdings = backendResult.account.holdings || {};
+                purchaseInfo = backendResult.account.purchase_info || {};
+                swapCount = backendResult.account.swap_count || 0;
+                txHistory = backendResult.account.tx_history || [];
+                console.log('[AUTH] Restored existing Google account data');
+              }
               
               await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
               await AsyncStorage.setItem('wallet_address', wallet.address);
@@ -255,7 +272,11 @@ export default function AuthPage() {
               await AsyncStorage.setItem('is_logged_in', 'true');
               await AsyncStorage.setItem('auth_provider', 'google');
               await AsyncStorage.setItem('supabase_user_id', userData.user.id);
-              await AsyncStorage.setItem('demo_balance', '10000');
+              await AsyncStorage.setItem('demo_balance', String(initialBalance));
+              await AsyncStorage.setItem('token_holdings', JSON.stringify(holdings));
+              await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
+              await AsyncStorage.setItem('swap_count', String(swapCount));
+              await AsyncStorage.setItem('tx_history', JSON.stringify(txHistory));
               
               router.replace('/(tabs)/home');
               return;
