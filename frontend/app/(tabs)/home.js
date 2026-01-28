@@ -71,36 +71,55 @@ export default function HomePage() {
       setRecentTrades(txHistory.slice(0, 3));
       
       const tokenIds = ['ethereum', 'bitcoin', 'solana', 'binancecoin', 'ripple', 'cardano', 'dogecoin', 'avalanche-2'];
+      
+      // Fallback prices
+      const FALLBACK_PRICES = {
+        ETH: 3650, BTC: 96500, SOL: 185, BNB: 695, XRP: 2.35, ADA: 0.98, DOGE: 0.38, AVAX: 38.5,
+        MATIC: 0.52, DOT: 7.2, LINK: 14.5, UNI: 12.8, LTC: 108, SHIB: 0.000022, TRX: 0.25,
+        TON: 5.8, NEAR: 5.2, APT: 9.8, PEPE: 0.000018, ARB: 0.92, USDT: 1, DAI: 1, WBTC: 96400, ICP: 11.5,
+      };
+      
+      let priceMap = { ...FALLBACK_PRICES };
+      
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${tokenIds.join(',')}&vs_currencies=usd&include_24hr_change=true`
+          `https://api.coingecko.com/api/v3/simple/price?ids=${tokenIds.join(',')}&vs_currencies=usd`,
+          { signal: controller.signal }
         );
-        const priceData = await response.json();
         
-        const priceMap = {
-          ETH: priceData.ethereum?.usd || 3000,
-          BTC: priceData.bitcoin?.usd || 90000,
-          SOL: priceData.solana?.usd || 130,
-          BNB: priceData.binancecoin?.usd || 600,
-          XRP: priceData.ripple?.usd || 0.5,
-          ADA: priceData.cardano?.usd || 0.5,
-          DOGE: priceData.dogecoin?.usd || 0.08,
-          AVAX: priceData['avalanche-2']?.usd || 35,
-        };
+        clearTimeout(timeoutId);
         
-        setPrices(priceMap);
-        
-        let total = usdcBalance;
-        Object.entries(tokenHoldings).forEach(([symbol, amount]) => {
-          if (amount > 0 && priceMap[symbol]) {
-            total += amount * priceMap[symbol];
-          }
-        });
-        
-        setTotalValue(total);
+        if (response.ok) {
+          const priceData = await response.json();
+          priceMap = {
+            ...FALLBACK_PRICES,
+            ETH: priceData.ethereum?.usd || FALLBACK_PRICES.ETH,
+            BTC: priceData.bitcoin?.usd || FALLBACK_PRICES.BTC,
+            SOL: priceData.solana?.usd || FALLBACK_PRICES.SOL,
+            BNB: priceData.binancecoin?.usd || FALLBACK_PRICES.BNB,
+            XRP: priceData.ripple?.usd || FALLBACK_PRICES.XRP,
+            ADA: priceData.cardano?.usd || FALLBACK_PRICES.ADA,
+            DOGE: priceData.dogecoin?.usd || FALLBACK_PRICES.DOGE,
+            AVAX: priceData['avalanche-2']?.usd || FALLBACK_PRICES.AVAX,
+          };
+        }
       } catch (e) {
-        setTotalValue(usdcBalance);
+        // Use fallback prices silently
       }
+      
+      setPrices(priceMap);
+      
+      let total = usdcBalance;
+      Object.entries(tokenHoldings).forEach(([symbol, amount]) => {
+        if (amount > 0 && priceMap[symbol]) {
+          total += amount * priceMap[symbol];
+        }
+      });
+      
+      setTotalValue(total);
       
       const allHoldings = { USDC: usdcBalance, ...tokenHoldings };
       setHoldings(allHoldings);
