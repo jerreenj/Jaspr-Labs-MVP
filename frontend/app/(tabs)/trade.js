@@ -712,7 +712,7 @@ export default function TradePage() {
 
           {/* Conversion Display */}
           <View style={styles.conversionRow}>
-            <Text style={styles.conversionLabel}>You'll {mode === 'BUY' ? 'receive' : 'get'}</Text>
+            <Text style={styles.conversionLabel}>You will {mode === 'BUY' ? 'receive' : 'get'}</Text>
             <Text style={styles.conversionValue}>
               {mode === 'BUY' ? `${calculateTokenAmount()} ${symbol}` : `$${calculateUsdValue()} USDC`}
             </Text>
