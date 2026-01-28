@@ -139,7 +139,7 @@ export default function MarketsPage() {
     <View style={styles.container}>
       <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
         <View style={styles.header}>
-          <Text style={styles.title}>Markets</Text>
+          <Text style={styles.title}>Trade</Text>
           <Text style={styles.subtitle}>Top 25 cryptocurrencies • Tap to trade</Text>
         </View>
 
