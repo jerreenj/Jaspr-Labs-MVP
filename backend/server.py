@@ -1,19 +1,23 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import os
 from datetime import datetime
-from supabase import create_client, Client
-import httpx
+from pymongo import MongoClient
+from bson import ObjectId
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Supabase setup
-supabase_url = os.getenv('SUPABASE_URL')
-supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-supabase: Client = create_client(supabase_url, supabase_key)
+# MongoDB setup
+MONGO_URL = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+client = MongoClient(MONGO_URL)
+db = client['jaspr_db']
+
+# Collections
+users_collection = db['users']
+transactions_collection = db['transactions']
 
 app = FastAPI(title="JASPR API")
 
@@ -27,183 +31,236 @@ app.add_middleware(
 )
 
 # Models
-class UserCreate(BaseModel):
-    email: str
+class AccountCreate(BaseModel):
     wallet_address: str
-    provider: str = 'email'
+    username: Optional[str] = None
+    provider: str = 'quickstart'
 
-class SwapRequest(BaseModel):
+class AccountUpdate(BaseModel):
     wallet_address: str
-    from_token: str
-    to_token: str
-    amount: str
-    chain_id: int = 84532
+    balance: float
+    holdings: Dict[str, float]
+    purchase_info: Dict[str, Any]
+    swap_count: int
+
+class AccountSync(BaseModel):
+    wallet_address: str
+    balance: Optional[float] = None
+    holdings: Optional[Dict[str, float]] = None
+    purchase_info: Optional[Dict[str, Any]] = None
+    swap_count: Optional[int] = None
+    tx_history: Optional[List[Dict[str, Any]]] = None
 
 class TransactionRecord(BaseModel):
     wallet_address: str
     tx_hash: str
-    from_token: str
-    to_token: str
-    amount_in: str
-    amount_out: str
-    tx_type: str
-    status: str = 'completed'
+    type: str  # buy, sell, swap
+    symbol: str
+    amount: float
+    price: float
+    usd_value: float
+    timestamp: int
 
-# Uniswap V3 contract addresses on Base Sepolia
-UNISWAP_V3_ROUTER = '0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4'  # Base Sepolia
-UNISWAP_V3_QUOTER = '0xC5290058841028F1614F3A6F0F5816cAd0df5E27'  # Base Sepolia
+# Helper to convert ObjectId
+def serialize_doc(doc):
+    if doc:
+        doc['_id'] = str(doc['_id'])
+    return doc
 
-# Token addresses on Base Sepolia
-TOKEN_ADDRESSES = {
-    'WETH': '0x4200000000000000000000000000000000000006',
-    'USDC': '0x036CbD53842c5426634e7929541eC2318f3dCF7e',  # Base Sepolia USDC
-}
+# ==================== ACCOUNT ROUTES ====================
 
-# Routes
-@app.get("/")
-def root():
-    return {"message": "JASPR API", "version": "2.0.0", "chain": "Base Sepolia"}
-
-@app.post("/api/auth/signup")
-async def signup(user: UserCreate):
+@app.get("/api/health")
+async def health():
     try:
-        # Check if user exists
-        response = supabase.table('users').select('*').eq('email', user.email).execute()
+        client.admin.command('ping')
+        return {"status": "healthy", "database": "mongodb", "connected": True}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+
+@app.post("/api/account/create")
+async def create_account(account: AccountCreate):
+    """Create a new account or return existing one"""
+    try:
+        # Check if account exists
+        existing = users_collection.find_one({"wallet_address": account.wallet_address})
         
-        if response.data:
+        if existing:
             return {
                 "success": True,
-                "user": response.data[0],
-                "message": "User already exists"
+                "is_new": False,
+                "account": serialize_doc(existing),
+                "message": "Welcome back!"
             }
         
-        # Create new user
-        user_data = {
-            "email": user.email,
-            "wallet_address": user.wallet_address,
-            "provider": user.provider,
-            "created_at": datetime.utcnow().isoformat()
+        # Create new account with initial state
+        new_account = {
+            "wallet_address": account.wallet_address,
+            "username": account.username or f"User_{account.wallet_address[:8]}",
+            "provider": account.provider,
+            "balance": 10000.0,  # Starting demo balance
+            "holdings": {},
+            "purchase_info": {},
+            "swap_count": 0,
+            "tx_history": [],
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
         }
         
-        result = supabase.table('users').insert(user_data).execute()
+        result = users_collection.insert_one(new_account)
+        new_account['_id'] = str(result.inserted_id)
         
         return {
             "success": True,
-            "user": result.data[0] if result.data else user_data,
-            "message": "User created successfully"
+            "is_new": True,
+            "account": new_account,
+            "message": "Account created with $10,000 demo balance!"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/users/{wallet_address}")
-async def get_user(wallet_address: str):
+@app.get("/api/account/{wallet_address}")
+async def get_account(wallet_address: str):
+    """Get account by wallet address"""
     try:
-        response = supabase.table('users').select('*').eq('wallet_address', wallet_address).execute()
+        account = users_collection.find_one({"wallet_address": wallet_address})
         
-        if not response.data:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        return response.data[0]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/swap/quote")
-async def get_swap_quote(
-    from_token: str,
-    to_token: str,
-    amount: str,
-    chain_id: int = 84532
-):
-    """Get swap quote from Uniswap V3 or mock for testnet"""
-    try:
-        # For Base Sepolia testnet, return mock quotes
-        # In production, integrate with actual Uniswap V3 quoter
-        
-        prices = {
-            'WETH': 3000.0,
-            'USDC': 1.0,
-            'BTC': 50000.0,
-            'ETH': 3000.0,
-        }
-        
-        from_price = prices.get(from_token, 1.0)
-        to_price = prices.get(to_token, 1.0)
-        
-        amount_float = float(amount)
-        output_amount = (amount_float * from_price) / to_price
-        
-        # Apply 0.3% fee
-        fee = output_amount * 0.003
-        final_amount = output_amount - fee
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
         
         return {
-            "from_token": from_token,
-            "to_token": to_token,
-            "amount_in": amount,
-            "amount_out": str(final_amount),
-            "price_impact": "0.1%",
-            "fee": str(fee),
-            "route": [from_token, to_token],
-            "gas_estimate": "0.001"
+            "success": True,
+            "account": serialize_doc(account)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/account/sync")
+async def sync_account(data: AccountSync):
+    """Sync account data (balance, holdings, trades)"""
+    try:
+        account = users_collection.find_one({"wallet_address": data.wallet_address})
+        
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+        
+        # Build update object with only provided fields
+        update_data = {"updated_at": datetime.utcnow().isoformat()}
+        
+        if data.balance is not None:
+            update_data["balance"] = data.balance
+        if data.holdings is not None:
+            update_data["holdings"] = data.holdings
+        if data.purchase_info is not None:
+            update_data["purchase_info"] = data.purchase_info
+        if data.swap_count is not None:
+            update_data["swap_count"] = data.swap_count
+        if data.tx_history is not None:
+            update_data["tx_history"] = data.tx_history[:50]  # Keep last 50
+        
+        users_collection.update_one(
+            {"wallet_address": data.wallet_address},
+            {"$set": update_data}
+        )
+        
+        updated = users_collection.find_one({"wallet_address": data.wallet_address})
+        
+        return {
+            "success": True,
+            "account": serialize_doc(updated),
+            "message": "Account synced"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/accounts/recent")
+async def get_recent_accounts(limit: int = 10):
+    """Get recent accounts (for device recognition)"""
+    try:
+        accounts = list(users_collection.find().sort("updated_at", -1).limit(limit))
+        return {
+            "success": True,
+            "accounts": [serialize_doc(a) for a in accounts]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/transactions")
+# ==================== TRANSACTION ROUTES ====================
+
+@app.post("/api/transaction")
 async def record_transaction(tx: TransactionRecord):
+    """Record a transaction and update account"""
     try:
         tx_data = {
             "wallet_address": tx.wallet_address,
             "tx_hash": tx.tx_hash,
-            "from_token": tx.from_token,
-            "to_token": tx.to_token,
-            "amount_in": tx.amount_in,
-            "amount_out": tx.amount_out,
-            "tx_type": tx.tx_type,
-            "status": tx.status,
+            "type": tx.type,
+            "symbol": tx.symbol,
+            "amount": tx.amount,
+            "price": tx.price,
+            "usd_value": tx.usd_value,
+            "timestamp": tx.timestamp,
             "created_at": datetime.utcnow().isoformat()
         }
         
-        result = supabase.table('transactions').insert(tx_data).execute()
+        # Add to transactions collection
+        transactions_collection.insert_one(tx_data)
         
-        return {
-            "success": True,
-            "transaction": result.data[0] if result.data else tx_data
-        }
+        # Also add to user's tx_history
+        users_collection.update_one(
+            {"wallet_address": tx.wallet_address},
+            {
+                "$push": {
+                    "tx_history": {
+                        "$each": [tx_data],
+                        "$position": 0,
+                        "$slice": 50
+                    }
+                },
+                "$set": {"updated_at": datetime.utcnow().isoformat()}
+            }
+        )
+        
+        return {"success": True, "message": "Transaction recorded"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/transactions/{wallet_address}")
-async def get_transactions(wallet_address: str, limit: int = 20):
+async def get_transactions(wallet_address: str, limit: int = 50):
+    """Get transaction history for an account"""
     try:
-        response = supabase.table('transactions')\
-            .select('*')\
-            .eq('wallet_address', wallet_address)\
-            .order('created_at', desc=True)\
-            .limit(limit)\
-            .execute()
+        transactions = list(
+            transactions_collection.find({"wallet_address": wallet_address})
+            .sort("timestamp", -1)
+            .limit(limit)
+        )
         
         return {
-            "transactions": response.data if response.data else []
+            "success": True,
+            "transactions": [serialize_doc(t) for t in transactions]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/tokens/base-sepolia")
-async def get_token_addresses():
-    """Return Base Sepolia token addresses"""
+# ==================== UTILITY ROUTES ====================
+
+@app.get("/")
+def root():
     return {
-        "chain_id": 84532,
-        "chain_name": "Base Sepolia",
-        "tokens": TOKEN_ADDRESSES,
-        "uniswap_router": UNISWAP_V3_ROUTER,
-        "uniswap_quoter": UNISWAP_V3_QUOTER
+        "message": "JASPR API",
+        "version": "2.0.0",
+        "database": "MongoDB",
+        "endpoints": {
+            "create_account": "POST /api/account/create",
+            "get_account": "GET /api/account/{wallet_address}",
+            "sync_account": "PUT /api/account/sync",
+            "health": "GET /api/health"
+        }
     }
 
 @app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "database": "supabase",
-        "chain": "Base Sepolia"
-    }
+async def health_check():
+    return await health()
