@@ -297,144 +297,139 @@ export default function WalletPage() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
-        <ScrollView style={styles.scroll}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Wallet</Text>
-            <Text style={styles.subtitle}>Self-Custodial • Linked to MetaMask</Text>
+      <ScrollView style={styles.scroll}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Wallet</Text>
+          <Text style={styles.subtitle}>Self-Custodial • Linked to MetaMask</Text>
 
-            {/* Self-Custodial Wallet Balance Card */}
-            <View style={styles.balanceCard}>
-              <LinearGradient
-                colors={['rgba(0, 255, 240, 0.1)', 'rgba(0, 184, 212, 0.05)']}
-                style={styles.balanceGradient}
-              >
-                <Text style={styles.balanceLabel}>Wallet Balance</Text>
-                <Text style={styles.balance}>
-                  ${(walletValue + onChainValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </Text>
-                <View style={styles.networkBadge}>
-                  <View style={styles.dot} />
-                  <Text style={styles.networkText}>Base Sepolia • Self-Custodial</Text>
-                </View>
-              </LinearGradient>
-            </View>
-
-            {/* Info Banner - Explain self-custodial */}
-            <View style={styles.infoCard}>
-              <MaterialCommunityIcons name="information-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>
-                This is your self-custodial wallet. Deposit funds from your exchange to keep them safe. Only you control these assets.
+          {/* Self-Custodial Wallet Balance Card */}
+          <View style={styles.balanceCard}>
+            <View style={styles.balanceGradient}>
+              <Text style={styles.balanceLabel}>Wallet Balance</Text>
+              <Text style={styles.balance}>
+                ${(walletValue + onChainValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
-            </View>
-
-            {/* On-Chain Balance */}
-            {parseFloat(onChainBalance) > 0 && (
-              <View style={styles.onChainCard}>
-                <Image source={{ uri: TOKEN_LOGOS.ETH }} style={styles.onChainLogo} />
-                <Text style={styles.onChainLabel}>On-Chain ETH:</Text>
-                <Text style={styles.onChainValue}>{parseFloat(onChainBalance).toFixed(6)} ETH</Text>
+              <View style={styles.networkBadge}>
+                <View style={styles.dot} />
+                <Text style={styles.networkText}>Base Sepolia • Self-Custodial</Text>
               </View>
-            )}
-
-            {/* Wallet Address */}
-            <View style={styles.addressCard}>
-              <View style={styles.addressHeader}>
-                <MaterialCommunityIcons name="wallet" size={20} color="#888" />
-                <Text style={styles.addressTitle}>Your Wallet Address</Text>
-              </View>
-              <TouchableOpacity onPress={copyAddress} style={styles.addressBox}>
-                <Text style={styles.addressText} numberOfLines={1}>
-                  {walletAddress ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-14)}` : 'Loading...'}
-                </Text>
-                <MaterialCommunityIcons name="content-copy" size={18} color="#888" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.actionsRow}>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleDeposit}>
-                <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 163, 0.15)' }]}>
-                  <MaterialCommunityIcons name="bank-transfer-in" size={24} color="#00FFA3" />
-                </View>
-                <Text style={styles.actionText}>Deposit</Text>
-                <Text style={styles.actionSubtext}>from Exchange</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => handleWithdraw('USDC')}>
-                <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 152, 0, 0.15)' }]}>
-                  <MaterialCommunityIcons name="arrow-up" size={24} color="#FF9800" />
-                </View>
-                <Text style={styles.actionText}>Withdraw</Text>
-                <Text style={styles.actionSubtext}>to Address</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
-                <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
-                  <MaterialCommunityIcons name="history" size={24} color="#888" />
-                </View>
-                <Text style={styles.actionText}>History</Text>
-                <Text style={styles.actionSubtext}>View All</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Wallet Assets (Self-Custodial) */}
-            <Text style={styles.sectionTitle}>Wallet Assets</Text>
-            <View style={styles.assetsList}>
-              {walletHoldingsArray.length > 0 || parseFloat(onChainBalance) > 0 ? (
-                <>
-                  {parseFloat(onChainBalance) > 0 && (
-                    <AssetItem 
-                      symbol="ETH" 
-                      amount={parseFloat(onChainBalance)} 
-                      value={onChainValue}
-                      onPress={() => handleWithdraw('ETH')}
-                    />
-                  )}
-                  {walletHoldingsArray.map(({ symbol, amount, value }) => (
-                    <AssetItem 
-                      key={symbol}
-                      symbol={symbol} 
-                      amount={amount} 
-                      value={value}
-                      onPress={() => handleWithdraw(symbol)}
-                    />
-                  ))}
-                </>
-              ) : (
-                <View style={styles.emptyState}>
-                  <MaterialCommunityIcons name="wallet-outline" size={48} color="#444" />
-                  <Text style={styles.emptyTitle}>Wallet is Empty</Text>
-                  <Text style={styles.emptyText}>Deposit funds from your exchange to keep them safe in your self-custodial wallet</Text>
-                  <TouchableOpacity style={styles.emptyButton} onPress={handleDeposit}>
-                    <LinearGradient colors={['#FFF', '#FFF']} style={styles.emptyButtonGradient}>
-                      <MaterialCommunityIcons name="bank-transfer-in" size={18} color="#000" />
-                      <Text style={styles.emptyButtonText}>Deposit from Exchange</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {/* Security Section */}
-            <Text style={styles.sectionTitle}>Security</Text>
-            <TouchableOpacity style={styles.securityItem} onPress={handleExportKey}>
-              <View style={styles.securityLeft}>
-                <MaterialCommunityIcons name="key" size={20} color="#FF9800" />
-                <Text style={styles.securityText}>Export Private Key</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
-            </TouchableOpacity>
-
-            <View style={styles.warningCard}>
-              <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
-              <Text style={styles.warningText}>
-                Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
-              </Text>
             </View>
           </View>
-        </ScrollView>
-      </LinearGradient>
+
+          {/* Info Banner - Explain self-custodial */}
+          <View style={styles.infoCard}>
+            <MaterialCommunityIcons name="information-outline" size={20} color="#888" />
+            <Text style={styles.infoText}>
+              This is your self-custodial wallet. Deposit funds from your exchange to keep them safe. Only you control these assets.
+            </Text>
+          </View>
+
+          {/* On-Chain Balance */}
+          {parseFloat(onChainBalance) > 0 && (
+            <View style={styles.onChainCard}>
+              <Image source={{ uri: TOKEN_LOGOS.ETH }} style={styles.onChainLogo} />
+              <Text style={styles.onChainLabel}>On-Chain ETH:</Text>
+              <Text style={styles.onChainValue}>{parseFloat(onChainBalance).toFixed(6)} ETH</Text>
+            </View>
+          )}
+
+          {/* Wallet Address */}
+          <View style={styles.addressCard}>
+            <View style={styles.addressHeader}>
+              <MaterialCommunityIcons name="wallet" size={20} color="#888" />
+              <Text style={styles.addressTitle}>Your Wallet Address</Text>
+            </View>
+            <TouchableOpacity onPress={copyAddress} style={styles.addressBox}>
+              <Text style={styles.addressText} numberOfLines={1}>
+                {walletAddress ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-14)}` : 'Loading...'}
+              </Text>
+              <MaterialCommunityIcons name="content-copy" size={18} color="#888" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={styles.actionBtn} onPress={handleDeposit}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 200, 83, 0.15)' }]}>
+                <MaterialCommunityIcons name="bank-transfer-in" size={24} color="#00C853" />
+              </View>
+              <Text style={styles.actionText}>Deposit</Text>
+              <Text style={styles.actionSubtext}>from Exchange</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtn} onPress={() => handleWithdraw('USDC')}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 59, 48, 0.15)' }]}>
+                <MaterialCommunityIcons name="arrow-up" size={24} color="#FF3B30" />
+              </View>
+              <Text style={styles.actionText}>Withdraw</Text>
+              <Text style={styles.actionSubtext}>to Address</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
+                <MaterialCommunityIcons name="history" size={24} color="#FFF" />
+              </View>
+              <Text style={styles.actionText}>History</Text>
+              <Text style={styles.actionSubtext}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Wallet Assets (Self-Custodial) */}
+          <Text style={styles.sectionTitle}>Wallet Assets</Text>
+          <View style={styles.assetsList}>
+            {walletHoldingsArray.length > 0 || parseFloat(onChainBalance) > 0 ? (
+              <>
+                {parseFloat(onChainBalance) > 0 && (
+                  <AssetItem 
+                    symbol="ETH" 
+                    amount={parseFloat(onChainBalance)} 
+                    value={onChainValue}
+                    onPress={() => handleWithdraw('ETH')}
+                  />
+                )}
+                {walletHoldingsArray.map(({ symbol, amount, value }) => (
+                  <AssetItem 
+                    key={symbol}
+                    symbol={symbol} 
+                    amount={amount} 
+                    value={value}
+                    onPress={() => handleWithdraw(symbol)}
+                  />
+                ))}
+              </>
+            ) : (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="wallet-outline" size={48} color="#444" />
+                <Text style={styles.emptyTitle}>Wallet is Empty</Text>
+                <Text style={styles.emptyText}>Deposit funds from your exchange to keep them safe in your self-custodial wallet</Text>
+                <TouchableOpacity style={styles.emptyButton} onPress={handleDeposit}>
+                  <View style={styles.emptyButtonGradient}>
+                    <MaterialCommunityIcons name="bank-transfer-in" size={18} color="#000" />
+                    <Text style={styles.emptyButtonText}>Deposit from Exchange</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Security Section */}
+          <Text style={styles.sectionTitle}>Security</Text>
+          <TouchableOpacity style={styles.securityItem} onPress={handleExportKey}>
+            <View style={styles.securityLeft}>
+              <MaterialCommunityIcons name="key" size={20} color="#FF9800" />
+              <Text style={styles.securityText}>Export Private Key</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
+          </TouchableOpacity>
+
+          <View style={styles.warningCard}>
+            <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
+            <Text style={styles.warningText}>
+              Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
 
       {/* Deposit from Exchange Modal */}
       <Modal visible={showDepositModal} transparent animationType="slide">
