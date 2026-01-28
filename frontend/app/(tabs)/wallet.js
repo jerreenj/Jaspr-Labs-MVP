@@ -322,7 +322,7 @@ export default function WalletPage() {
 
             {/* Info Banner - Explain self-custodial */}
             <View style={styles.infoCard}>
-              <MaterialCommunityIcons name="information-outline" size={20} color="#00B8D4" />
+              <MaterialCommunityIcons name="information-outline" size={20} color="#888" />
               <Text style={styles.infoText}>
                 This is your self-custodial wallet. Deposit funds from your exchange to keep them safe. Only you control these assets.
               </Text>
