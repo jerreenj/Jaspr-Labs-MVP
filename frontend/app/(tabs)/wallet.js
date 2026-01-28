@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
   assetRight: { alignItems: 'flex-end' },
   assetBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
   assetValue: { fontSize: 12, color: '#888', marginTop: 2 },
-  emptyState: { alignItems: 'center', padding: 32 },
+  emptyState: { alignItems: 'center', padding: 32, backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: '#222' },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#888', marginTop: 12 },
   emptyText: { fontSize: 14, color: '#666', marginTop: 8, textAlign: 'center', lineHeight: 20 },
   emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
