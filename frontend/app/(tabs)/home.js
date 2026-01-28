@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   portfolioLabel: { fontSize: 14, color: '#888' },
-  portfolioValue: { fontSize: 40, fontWeight: '700', color: '#FFF', marginTop: 8 },
+  portfolioValue: { fontSize: 40, fontWeight: '700', color: '#FFF', marginTop: 8, fontFamily: 'Inter_700Bold' },
   networkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8 },
   networkDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C853' },
   networkText: { fontSize: 13, color: '#888' },
