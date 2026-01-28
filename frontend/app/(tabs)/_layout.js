@@ -57,14 +57,10 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* Hide history from tab bar - accessed via menu */}
       <Tabs.Screen
         name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="history" size={size} color={color} />
-          ),
-        }}
+        options={{ href: null }}
       />
       {/* Hide trade from tab bar - accessed via markets */}
       <Tabs.Screen
