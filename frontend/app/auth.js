@@ -96,6 +96,56 @@ export default function AuthPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [existingAccount, setExistingAccount] = useState(null);
+  const [checkingAccount, setCheckingAccount] = useState(true);
+
+  // Check for existing account on mount
+  useEffect(() => {
+    checkExistingAccount();
+  }, []);
+
+  const checkExistingAccount = async () => {
+    try {
+      const savedAddress = await AsyncStorage.getItem('wallet_address');
+      if (savedAddress) {
+        // Try to load from backend
+        const backendAccount = await loadAccountFromBackend(savedAddress);
+        if (backendAccount) {
+          setExistingAccount(backendAccount);
+        }
+      }
+    } catch (error) {
+      console.log('[AUTH] Check existing account error:', error);
+    } finally {
+      setCheckingAccount(false);
+    }
+  };
+
+  const handleContinueExisting = async () => {
+    if (!existingAccount) return;
+    
+    setLoading(true);
+    try {
+      // Restore account data to AsyncStorage
+      await AsyncStorage.setItem('wallet_address', existingAccount.wallet_address);
+      await AsyncStorage.setItem('is_logged_in', 'true');
+      await AsyncStorage.setItem('auth_provider', existingAccount.provider || 'quickstart');
+      await AsyncStorage.setItem('demo_balance', String(existingAccount.balance || 10000));
+      await AsyncStorage.setItem('token_holdings', JSON.stringify(existingAccount.holdings || {}));
+      await AsyncStorage.setItem('purchase_info', JSON.stringify(existingAccount.purchase_info || {}));
+      await AsyncStorage.setItem('swap_count', String(existingAccount.swap_count || 0));
+      await AsyncStorage.setItem('tx_history', JSON.stringify(existingAccount.tx_history || []));
+      await AsyncStorage.setItem('username', existingAccount.username || 'User');
+      
+      console.log('[AUTH] Restored existing account:', existingAccount.wallet_address);
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      console.error('[AUTH] Error restoring account:', error);
+      Alert.alert('Error', 'Failed to restore account');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleQuickStart = async () => {
     setLoading(true);
