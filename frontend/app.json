@@ -41,16 +41,9 @@
       "typedRoutes": true
     },
     "extra": {
-      "eas": {
-        "projectId": "jaspr-wallet"
-      },
-      "supabaseUrl": "${EXPO_PUBLIC_SUPABASE_URL}",
-      "supabaseAnonKey": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
-      "backendUrl": "${EXPO_PUBLIC_BACKEND_URL}",
-      "baseSepoliaRpc": "${EXPO_PUBLIC_BASE_SEPOLIA_RPC}",
-      "baseSepoliaChainId": "${EXPO_PUBLIC_BASE_SEPOLIA_CHAIN_ID}",
-      "baseExplorer": "${EXPO_PUBLIC_BASE_EXPLORER}"
-    },
-    "owner": "jaspr"
+      "router": {
+        "origin": false
+      }
+    }
   }
 }
