@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 24,
   },
-  greeting: { fontSize: 28, fontWeight: '700', color: '#FFF' },
+  greeting: { fontSize: 28, fontWeight: '700', color: '#FFF', fontFamily: 'Inter_700Bold' },
   subGreeting: { fontSize: 14, color: '#888', marginTop: 4 },
   menuBtn: { 
     padding: 8, 
