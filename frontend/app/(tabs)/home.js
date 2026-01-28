@@ -160,7 +160,7 @@ export default function HomePage() {
         <ScrollView 
           style={styles.scroll}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00FFF0" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
           }
         >
           <View style={styles.content}>
