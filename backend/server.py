@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# MongoDB setup
+# MongoDB setup - use DB_NAME from env for production compatibility
 MONGO_URL = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+DB_NAME = os.getenv('DB_NAME', 'jaspr_db')
 client = MongoClient(MONGO_URL)
-db = client['jaspr_db']
+db = client[DB_NAME]
 
 # Collections
 users_collection = db['users']
