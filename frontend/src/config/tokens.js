@@ -90,9 +90,9 @@ export const TOKENS = [
   },
 ];
 
-export const BASE_SEPOLIA_CHAIN_ID = 84532;
-export const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
-export const BASE_SEPOLIA_EXPLORER = 'https://sepolia.basescan.org';
+export const BASE_SEPOLIA_CHAIN_ID = parseInt(process.env.EXPO_PUBLIC_BASE_SEPOLIA_CHAIN_ID || '84532');
+export const BASE_SEPOLIA_RPC = process.env.EXPO_PUBLIC_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
+export const BASE_SEPOLIA_EXPLORER = process.env.EXPO_PUBLIC_BASE_EXPLORER || 'https://sepolia.basescan.org';
 
 // Contract addresses (UPDATE AFTER DEPLOYMENT)
 export const CONTRACTS = {
