@@ -451,6 +451,9 @@ export default function TradePage() {
       setTokenHolding(newHolding);
       setAmount('');
       
+      // Sync to backend after successful trade
+      syncToBackend();
+      
       const bonusText = currentCount < 10 ? '\n\n🎁 +$5 Trade Reward!' : '';
       Alert.alert(
         `${mode === 'BUY' ? '✅ Bought' : '✅ Sold'} ${symbol}`,
