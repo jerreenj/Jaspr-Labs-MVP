@@ -539,6 +539,11 @@ const styles = StyleSheet.create({
   holdingRight: { alignItems: 'flex-end' },
   holdingValue: { fontSize: 17, fontWeight: '600', color: '#FFF' },
   holdingPrice: { fontSize: 12, color: '#666', marginTop: 2 },
+  pnlRow: { alignItems: 'flex-end', marginTop: 2 },
+  holdingPnl: { fontSize: 12, fontWeight: '600' },
+  pnlPositive: { color: '#00C853' },
+  pnlNegative: { color: '#FF3B30' },
+  holdingCost: { fontSize: 10, color: '#666', marginTop: 1 },
   emptyState: {
     alignItems: 'center',
     backgroundColor: '#111',
