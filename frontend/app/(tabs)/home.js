@@ -219,42 +219,22 @@ export default function HomePage() {
             {holdingsArray.length > 0 ? (
               <View style={styles.holdingsContainer}>
                 {holdingsArray.map(({ symbol, amount, value }) => (
-                  <TouchableOpacity 
+                  <HoldingItem 
                     key={symbol}
-                    style={styles.holdingItem}
+                    symbol={symbol}
+                    amount={amount}
+                    value={value}
+                    price={prices[symbol]}
                     onPress={() => {
                       if (symbol !== 'USDC') {
-                        const coinIds = { BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin' };
+                        const coinIds = { BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin', XRP: 'ripple', ADA: 'cardano', DOGE: 'dogecoin', AVAX: 'avalanche-2', TON: 'the-open-network', DOT: 'polkadot', LINK: 'chainlink', MATIC: 'matic-network', UNI: 'uniswap', LTC: 'litecoin', SHIB: 'shiba-inu', TRX: 'tron', NEAR: 'near', APT: 'aptos', PEPE: 'pepe', ARB: 'arbitrum' };
                         router.push({
                           pathname: '/(tabs)/trade',
-                          params: { coin: coinIds[symbol] || symbol.toLowerCase(), symbol, name: symbol }
+                          params: { coin: coinIds[symbol] || symbol.toLowerCase(), symbol, name: symbol, logo: TOKEN_LOGOS[symbol] }
                         });
                       }
                     }}
-                    activeOpacity={symbol === 'USDC' ? 1 : 0.7}
-                  >
-                    <View style={styles.holdingLeft}>
-                      <View style={[styles.tokenIcon, { backgroundColor: `${getTokenColor(symbol)}25` }]}>
-                        <Text style={[styles.tokenIconText, { color: getTokenColor(symbol) }]}>
-                          {symbol[0]}
-                        </Text>
-                      </View>
-                      <View>
-                        <Text style={styles.holdingSymbol}>{symbol}</Text>
-                        <Text style={styles.holdingAmount}>
-                          {symbol === 'USDC' ? amount.toFixed(2) : amount.toFixed(8)}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.holdingRight}>
-                      <Text style={styles.holdingValue}>${value.toFixed(2)}</Text>
-                      {symbol !== 'USDC' && (
-                        <Text style={styles.holdingPrice}>
-                          @${prices[symbol]?.toLocaleString() || '0'}
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
+                  />
                 ))}
               </View>
             ) : (
