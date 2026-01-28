@@ -41,11 +41,12 @@ export default function WalletPage() {
   const router = useRouter();
   const [walletAddress, setWalletAddress] = useState('');
   const [privateKey, setPrivateKey] = useState('');
-  const [holdings, setHoldings] = useState({ USDC: 10000, ETH: 0, BTC: 0, SOL: 0 });
+  const [walletHoldings, setWalletHoldings] = useState({}); // Self-custodial wallet (starts empty)
+  const [tradingBalance, setTradingBalance] = useState({ USDC: 10000, ETH: 0, BTC: 0, SOL: 0 }); // Trading account
   const [prices, setPrices] = useState({ ETH: 3000, BTC: 90000, SOL: 130 });
   const [onChainBalance, setOnChainBalance] = useState('0');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showSendModal, setShowSendModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
   const [withdrawToken, setWithdrawToken] = useState('USDC');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
