@@ -198,6 +198,16 @@ export default function AuthPage() {
   };
 
   const handleGoogleLogin = async () => {
+    // Check if Supabase is configured
+    if (!supabase) {
+      Alert.alert(
+        'Google Login Not Available',
+        'Google authentication is not configured. Please use Quick Start to demo the app.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     setGoogleLoading(true);
     
     try {
