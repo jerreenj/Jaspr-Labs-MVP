@@ -282,7 +282,7 @@ export default function WalletPage() {
 
   const getTokenColor = (symbol) => {
     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
-    return colors[symbol] || '#00FFF0';
+    return colors[symbol] || '#888';
   };
 
   // Wallet holdings (self-custodial - only shows deposited funds)
