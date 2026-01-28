@@ -1,8 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const { height } = Dimensions.get('window');
 
 export default function LandingPage() {
   const router = useRouter();
@@ -10,43 +8,42 @@ export default function LandingPage() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      
-      {/* Top spacer */}
-      <View style={styles.topSpacer} />
-      
-      {/* Brand */}
-      <Text style={styles.brand}>Jaspr Labs</Text>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Brand */}
+        <Text style={styles.brand}>Jaspr Labs</Text>
 
-      {/* Features */}
-      <View style={styles.features}>
-        <View style={styles.featureRow}>
-          <View style={styles.feature}>
-            <MaterialCommunityIcons name="chart-line" size={22} color="#00C853" />
-            <Text style={styles.featureTitle}>Real-Time Trading</Text>
-            <Text style={styles.featureDesc}>Live charts & execution</Text>
+        {/* Features */}
+        <View style={styles.features}>
+          <View style={styles.featureRow}>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons name="chart-line" size={22} color="#00C853" />
+              <Text style={styles.featureTitle}>Real-Time Trading</Text>
+              <Text style={styles.featureDesc}>Live charts & execution</Text>
+            </View>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons name="shield-lock" size={22} color="#FFF" />
+              <Text style={styles.featureTitle}>Self-Custody</Text>
+              <Text style={styles.featureDesc}>You control your keys</Text>
+            </View>
           </View>
-          <View style={styles.feature}>
-            <MaterialCommunityIcons name="shield-lock" size={22} color="#FFF" />
-            <Text style={styles.featureTitle}>Self-Custody</Text>
-            <Text style={styles.featureDesc}>You control your keys</Text>
+          <View style={styles.featureRow}>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons name="swap-horizontal" size={22} color="#FFF" />
+              <Text style={styles.featureTitle}>Instant Swaps</Text>
+              <Text style={styles.featureDesc}>25+ tokens available</Text>
+            </View>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons name="cash-multiple" size={22} color="#FFD700" />
+              <Text style={styles.featureTitle}>Low Fees</Text>
+              <Text style={styles.featureDesc}>0.3% per trade</Text>
+            </View>
           </View>
         </View>
-        <View style={styles.featureRow}>
-          <View style={styles.feature}>
-            <MaterialCommunityIcons name="swap-horizontal" size={22} color="#FFF" />
-            <Text style={styles.featureTitle}>Instant Swaps</Text>
-            <Text style={styles.featureDesc}>25+ tokens available</Text>
-          </View>
-          <View style={styles.feature}>
-            <MaterialCommunityIcons name="cash-multiple" size={22} color="#FFD700" />
-            <Text style={styles.featureTitle}>Low Fees</Text>
-            <Text style={styles.featureDesc}>0.3% per trade</Text>
-          </View>
-        </View>
-      </View>
 
-      {/* Bottom section */}
-      <View style={styles.bottomSection}>
+        {/* CTA */}
         <TouchableOpacity 
           style={styles.button}
           onPress={() => router.push('/auth')}
@@ -62,7 +59,7 @@ export default function LandingPage() {
         </View>
 
         <Text style={styles.footer}>Base Sepolia Testnet</Text>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -71,10 +68,12 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#000',
-    paddingHorizontal: 16,
   },
-  topSpacer: {
-    height: height * 0.08,
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 40,
   },
   brand: {
     fontSize: 36,
@@ -82,11 +81,10 @@ const styles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'center',
     fontFamily: 'Inter_700Bold',
+    marginBottom: 24,
   },
   features: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
+    marginBottom: 24,
   },
   featureRow: {
     flexDirection: 'row',
@@ -112,9 +110,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     marginTop: 2,
-  },
-  bottomSection: {
-    paddingBottom: 30,
   },
   button: {
     backgroundColor: '#FFF',
