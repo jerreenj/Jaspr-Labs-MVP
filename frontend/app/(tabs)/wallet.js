@@ -407,7 +407,7 @@ export default function WalletPage() {
                   <Text style={styles.emptyTitle}>Wallet is Empty</Text>
                   <Text style={styles.emptyText}>Deposit funds from your exchange to keep them safe in your self-custodial wallet</Text>
                   <TouchableOpacity style={styles.emptyButton} onPress={handleDeposit}>
-                    <LinearGradient colors={['#00FFA3', '#00B8D4']} style={styles.emptyButtonGradient}>
+                    <LinearGradient colors={['#FFF', '#FFF']} style={styles.emptyButtonGradient}>
                       <MaterialCommunityIcons name="bank-transfer-in" size={18} color="#000" />
                       <Text style={styles.emptyButtonText}>Deposit from Exchange</Text>
                     </LinearGradient>
