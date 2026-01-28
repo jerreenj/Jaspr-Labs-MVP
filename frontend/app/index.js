@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const { height } = Dimensions.get('window');
 
 export default function LandingPage() {
   const router = useRouter();
@@ -9,35 +11,33 @@ export default function LandingPage() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
-      {/* Brand - Centered */}
-      <View style={styles.brandSection}>
-        <Text style={styles.brand}>Jaspr Labs</Text>
-      </View>
+      {/* Brand */}
+      <Text style={styles.brand}>Jaspr Labs</Text>
 
       {/* Features */}
       <View style={styles.features}>
         <View style={styles.featureRow}>
           <View style={styles.feature}>
-            <MaterialCommunityIcons name="chart-line" size={24} color="#00C853" />
+            <MaterialCommunityIcons name="chart-line" size={22} color="#00C853" />
             <Text style={styles.featureTitle}>Real-Time Trading</Text>
-            <Text style={styles.featureDesc}>Live charts & instant execution</Text>
+            <Text style={styles.featureDesc}>Live charts & execution</Text>
           </View>
           <View style={styles.feature}>
-            <MaterialCommunityIcons name="shield-lock" size={24} color="#FFF" />
+            <MaterialCommunityIcons name="shield-lock" size={22} color="#FFF" />
             <Text style={styles.featureTitle}>Self-Custody</Text>
-            <Text style={styles.featureDesc}>You control your private keys</Text>
+            <Text style={styles.featureDesc}>You control your keys</Text>
           </View>
         </View>
         <View style={styles.featureRow}>
           <View style={styles.feature}>
-            <MaterialCommunityIcons name="swap-horizontal" size={24} color="#FFF" />
+            <MaterialCommunityIcons name="swap-horizontal" size={22} color="#FFF" />
             <Text style={styles.featureTitle}>Instant Swaps</Text>
-            <Text style={styles.featureDesc}>Trade 25+ tokens seamlessly</Text>
+            <Text style={styles.featureDesc}>25+ tokens available</Text>
           </View>
           <View style={styles.feature}>
-            <MaterialCommunityIcons name="cash-multiple" size={24} color="#FFD700" />
+            <MaterialCommunityIcons name="cash-multiple" size={22} color="#FFD700" />
             <Text style={styles.featureTitle}>Low Fees</Text>
-            <Text style={styles.featureDesc}>0.3% per trade, no hidden costs</Text>
+            <Text style={styles.featureDesc}>0.3% per trade</Text>
           </View>
         </View>
       </View>
@@ -54,11 +54,10 @@ export default function LandingPage() {
 
       {/* Trust Badge */}
       <View style={styles.trustBadge}>
-        <MaterialCommunityIcons name="check-decagram" size={16} color="#00C853" />
-        <Text style={styles.trustText}>$10,000 Demo Balance • No Sign-up Required</Text>
+        <MaterialCommunityIcons name="check-decagram" size={14} color="#00C853" />
+        <Text style={styles.trustText}>$10,000 Demo • No Sign-up</Text>
       </View>
 
-      {/* Footer */}
       <Text style={styles.footer}>Base Sepolia Testnet</Text>
     </View>
   );
@@ -68,23 +67,21 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#000',
-    justifyContent: 'center',
     paddingHorizontal: 16,
-  },
-  brandSection: {
-    alignItems: 'center',
-    marginBottom: 24,
+    paddingTop: height * 0.12,
+    paddingBottom: 20,
   },
   brand: {
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 1,
-    fontFamily: 'Inter_700Bold',
     textAlign: 'center',
+    marginBottom: 20,
+    fontFamily: 'Inter_700Bold',
   },
   features: {
-    marginBottom: 24,
+    flex: 1,
+    justifyContent: 'center',
   },
   featureRow: {
     flexDirection: 'row',
@@ -103,14 +100,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFF',
-    marginTop: 8,
-    marginBottom: 2,
+    marginTop: 6,
     fontFamily: 'Inter_600SemiBold',
   },
   featureDesc: {
     fontSize: 11,
     color: '#666',
-    fontFamily: 'Inter_400Regular',
+    marginTop: 2,
   },
   button: {
     backgroundColor: '#FFF',
@@ -120,6 +116,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    marginTop: 16,
   },
   buttonText: {
     color: '#000',
@@ -137,13 +134,11 @@ const styles = StyleSheet.create({
   trustText: {
     color: '#666',
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
   },
   footer: {
     color: '#333',
     fontSize: 10,
     textAlign: 'center',
-    marginTop: 16,
-    fontFamily: 'Inter_400Regular',
+    marginTop: 12,
   },
 });
