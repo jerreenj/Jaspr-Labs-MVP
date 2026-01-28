@@ -394,9 +394,12 @@ function HoldingItem({ symbol, amount, value, price, purchaseCost, onPress }) {
     return colors[sym] || '#FFF';
   };
   
-  // Calculate profit/loss
-  const pnl = purchaseCost ? value - purchaseCost : 0;
-  const pnlPercent = purchaseCost ? ((value - purchaseCost) / purchaseCost) * 100 : 0;
+  // Calculate profit/loss - only if we have valid current value and purchase cost
+  const hasValidPrice = price && price > 0 && value > 0;
+  const hasPurchaseInfo = purchaseCost && purchaseCost > 0;
+  const pnl = (hasValidPrice && hasPurchaseInfo) ? value - purchaseCost : 0;
+  const pnlPercent = (hasValidPrice && hasPurchaseInfo) ? ((value - purchaseCost) / purchaseCost) * 100 : 0;
+  const showPnl = hasValidPrice && hasPurchaseInfo;
   
   return (
     <TouchableOpacity 
@@ -429,7 +432,7 @@ function HoldingItem({ symbol, amount, value, price, purchaseCost, onPress }) {
       </View>
       <View style={styles.holdingRight}>
         <Text style={styles.holdingValue}>${value.toFixed(2)}</Text>
-        {symbol !== 'USDC' && purchaseCost > 0 && (
+        {symbol !== 'USDC' && showPnl && (
           <View style={styles.pnlRow}>
             <Text style={[styles.holdingPnl, pnl >= 0 ? styles.pnlPositive : styles.pnlNegative]}>
               {pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
@@ -439,11 +442,15 @@ function HoldingItem({ symbol, amount, value, price, purchaseCost, onPress }) {
             </Text>
           </View>
         )}
-        {symbol !== 'USDC' && !purchaseCost && (
+        {symbol !== 'USDC' && !showPnl && hasPurchaseInfo && (
+          <Text style={styles.holdingPrice}>Loading...</Text>
+        )}
+        {symbol !== 'USDC' && !hasPurchaseInfo && (
           <Text style={styles.holdingPrice}>
             @${price?.toLocaleString() || '0'}
           </Text>
         )}
+      </View>
       </View>
     </TouchableOpacity>
   );
