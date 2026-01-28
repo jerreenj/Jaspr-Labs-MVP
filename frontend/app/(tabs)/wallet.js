@@ -4,10 +4,17 @@ import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
-import { ethers } from 'ethers';
 
-const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
-const BASE_SEPOLIA_EXPLORER = 'https://sepolia.basescan.org';
+// Optional ethers import for on-chain features (gracefully degrades if not available)
+let ethers = null;
+try {
+  ethers = require('ethers');
+} catch (e) {
+  console.log('ethers not available, on-chain features disabled');
+}
+
+const BASE_SEPOLIA_RPC = process.env.EXPO_PUBLIC_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
+const BASE_SEPOLIA_EXPLORER = process.env.EXPO_PUBLIC_BASE_EXPLORER || 'https://sepolia.basescan.org';
 
 // Token logos from CoinGecko
 const TOKEN_LOGOS = {
