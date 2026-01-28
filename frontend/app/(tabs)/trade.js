@@ -1,25 +1,38 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Dimensions, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Dimensions, Image, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LineChart } from 'react-native-gifted-charts';
 
 const { width } = Dimensions.get('window');
 
-// Token logos
-const TOKEN_LOGOS = {
-  bitcoin: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
-  ethereum: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
-  solana: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
-  binancecoin: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png',
-  ripple: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png',
-  cardano: 'https://assets.coingecko.com/coins/images/975/small/cardano.png',
-  dogecoin: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png',
-  'avalanche-2': 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
-  'the-open-network': 'https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png',
-  'matic-network': 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+// All 25 tokens with their info
+const ALL_TOKENS = {
+  bitcoin: { symbol: 'BTC', name: 'Bitcoin', logo: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
+  ethereum: { symbol: 'ETH', name: 'Ethereum', logo: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
+  tether: { symbol: 'USDT', name: 'Tether', logo: 'https://assets.coingecko.com/coins/images/325/small/Tether.png' },
+  binancecoin: { symbol: 'BNB', name: 'BNB', logo: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png' },
+  solana: { symbol: 'SOL', name: 'Solana', logo: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
+  'usd-coin': { symbol: 'USDC', name: 'USD Coin', logo: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png' },
+  ripple: { symbol: 'XRP', name: 'XRP', logo: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png' },
+  dogecoin: { symbol: 'DOGE', name: 'Dogecoin', logo: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png' },
+  cardano: { symbol: 'ADA', name: 'Cardano', logo: 'https://assets.coingecko.com/coins/images/975/small/cardano.png' },
+  'avalanche-2': { symbol: 'AVAX', name: 'Avalanche', logo: 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png' },
+  tron: { symbol: 'TRX', name: 'TRON', logo: 'https://assets.coingecko.com/coins/images/1094/small/tron-logo.png' },
+  'the-open-network': { symbol: 'TON', name: 'Toncoin', logo: 'https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png' },
+  polkadot: { symbol: 'DOT', name: 'Polkadot', logo: 'https://assets.coingecko.com/coins/images/12171/small/polkadot.png' },
+  'matic-network': { symbol: 'MATIC', name: 'Polygon', logo: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png' },
+  chainlink: { symbol: 'LINK', name: 'Chainlink', logo: 'https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png' },
+  'shiba-inu': { symbol: 'SHIB', name: 'Shiba Inu', logo: 'https://assets.coingecko.com/coins/images/11939/small/shiba.png' },
+  'wrapped-bitcoin': { symbol: 'WBTC', name: 'Wrapped BTC', logo: 'https://assets.coingecko.com/coins/images/7598/small/wrapped_bitcoin_wbtc.png' },
+  litecoin: { symbol: 'LTC', name: 'Litecoin', logo: 'https://assets.coingecko.com/coins/images/2/small/litecoin.png' },
+  uniswap: { symbol: 'UNI', name: 'Uniswap', logo: 'https://assets.coingecko.com/coins/images/12504/small/uniswap-logo.png' },
+  dai: { symbol: 'DAI', name: 'Dai', logo: 'https://assets.coingecko.com/coins/images/9956/small/Badge_Dai.png' },
+  'internet-computer': { symbol: 'ICP', name: 'Internet Computer', logo: 'https://assets.coingecko.com/coins/images/14495/small/Internet_Computer_logo.png' },
+  near: { symbol: 'NEAR', name: 'NEAR Protocol', logo: 'https://assets.coingecko.com/coins/images/10365/small/near.jpg' },
+  aptos: { symbol: 'APT', name: 'Aptos', logo: 'https://assets.coingecko.com/coins/images/26455/small/aptos_round.png' },
+  pepe: { symbol: 'PEPE', name: 'Pepe', logo: 'https://assets.coingecko.com/coins/images/29850/small/pepe-token.jpeg' },
+  arbitrum: { symbol: 'ARB', name: 'Arbitrum', logo: 'https://assets.coingecko.com/coins/images/16547/small/arb.jpg' },
 };
 
 export default function TradePage() {
@@ -35,60 +48,99 @@ export default function TradePage() {
   const [priceChange, setPriceChange] = useState(0);
   const [chartData, setChartData] = useState([]);
   const [chartLoading, setChartLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState('24H');
+  const [timeframe, setTimeframe] = useState('1H');
   const [swapCount, setSwapCount] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [highPrice, setHighPrice] = useState(0);
+  const [lowPrice, setLowPrice] = useState(0);
+  const [volume, setVolume] = useState(0);
+  const [livePrice, setLivePrice] = useState(0);
+  const priceInterval = useRef(null);
   
   const coinId = params.coin || 'bitcoin';
-  const symbol = params.symbol || 'BTC';
-  const name = params.name || 'Bitcoin';
-  const logo = params.logo || TOKEN_LOGOS[coinId] || '';
+  const tokenInfo = ALL_TOKENS[coinId] || { symbol: 'BTC', name: 'Bitcoin', logo: '' };
+  const symbol = params.symbol || tokenInfo.symbol;
+  const name = params.name || tokenInfo.name;
+  const logo = params.logo || tokenInfo.logo;
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+      loadChartData();
+      startLivePriceUpdates();
+      
+      return () => {
+        if (priceInterval.current) {
+          clearInterval(priceInterval.current);
+        }
+      };
+    }, [coinId, timeframe])
+  );
+
+  const startLivePriceUpdates = () => {
+    // Simulate live price updates every 2 seconds
+    if (priceInterval.current) clearInterval(priceInterval.current);
+    
+    priceInterval.current = setInterval(() => {
+      setLivePrice(prev => {
+        if (!prev || prev === 0) return price;
+        // Simulate small price movements (-0.1% to +0.1%)
+        const change = prev * (0.999 + Math.random() * 0.002);
+        return change;
+      });
+    }, 2000);
+  };
 
   useEffect(() => {
-    loadData();
-    loadChartData();
-  }, [coinId, timeframe]);
+    if (price > 0 && livePrice === 0) {
+      setLivePrice(price);
+    }
+  }, [price]);
 
   const loadData = async () => {
     try {
-      // Load balance
       const demoBalance = await AsyncStorage.getItem('demo_balance');
       setBalance(demoBalance ? parseFloat(demoBalance) : 10000);
       
-      // Load holdings
       const holdings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = holdings ? JSON.parse(holdings) : {};
       const holding = tokenHoldings[symbol];
       setTokenHolding(holding && isFinite(holding) ? holding : 0);
       
-      // Load swap count for rewards
       const count = await AsyncStorage.getItem('swap_count');
       setSwapCount(count ? parseInt(count) : 0);
       
       // Fallback prices
       const FALLBACK = {
-        bitcoin: { usd: 89500, change: 2.5 },
-        ethereum: { usd: 2950, change: 1.8 },
-        solana: { usd: 128, change: 3.2 },
-        binancecoin: { usd: 595, change: -0.5 },
-        ripple: { usd: 0.52, change: 1.2 },
-        cardano: { usd: 0.48, change: -1.1 },
-        dogecoin: { usd: 0.082, change: 4.5 },
-        'avalanche-2': { usd: 34.5, change: 2.1 },
+        bitcoin: { usd: 96500, change: 2.5, high: 97200, low: 95100, vol: 28500000000 },
+        ethereum: { usd: 3650, change: 1.8, high: 3720, low: 3580, vol: 15200000000 },
+        solana: { usd: 185, change: 3.2, high: 192, low: 178, vol: 3800000000 },
+        binancecoin: { usd: 695, change: -0.5, high: 705, low: 682, vol: 1200000000 },
+        ripple: { usd: 2.35, change: 1.2, high: 2.42, low: 2.28, vol: 4500000000 },
+        cardano: { usd: 0.98, change: -1.1, high: 1.02, low: 0.95, vol: 890000000 },
+        dogecoin: { usd: 0.38, change: 4.5, high: 0.41, low: 0.35, vol: 2100000000 },
+        'avalanche-2': { usd: 38.5, change: 2.1, high: 40.2, low: 36.8, vol: 520000000 },
       };
 
-      // Fetch price
       try {
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`,
+          `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_24hr_high=true&include_24hr_low=true`,
           { signal: AbortSignal.timeout(5000) }
         );
         const data = await response.json();
-        setPrice(data[coinId]?.usd || FALLBACK[coinId]?.usd || 0);
-        setPriceChange(data[coinId]?.usd_24h_change || FALLBACK[coinId]?.change || 0);
+        const tokenData = data[coinId];
+        setPrice(tokenData?.usd || FALLBACK[coinId]?.usd || 100);
+        setPriceChange(tokenData?.usd_24h_change || FALLBACK[coinId]?.change || 0);
+        setHighPrice(tokenData?.usd_24h_high || FALLBACK[coinId]?.high || 0);
+        setLowPrice(tokenData?.usd_24h_low || FALLBACK[coinId]?.low || 0);
+        setVolume(tokenData?.usd_24h_vol || FALLBACK[coinId]?.vol || 0);
       } catch (e) {
-        setPrice(FALLBACK[coinId]?.usd || 0);
-        setPriceChange(FALLBACK[coinId]?.change || 0);
+        const fb = FALLBACK[coinId] || { usd: 100, change: 0, high: 105, low: 95, vol: 1000000 };
+        setPrice(fb.usd);
+        setPriceChange(fb.change);
+        setHighPrice(fb.high);
+        setLowPrice(fb.low);
+        setVolume(fb.vol);
       }
     } catch (error) {
       console.error('Load error:', error);
@@ -98,42 +150,38 @@ export default function TradePage() {
   const loadChartData = async () => {
     setChartLoading(true);
     try {
-      const days = timeframe === '24H' ? 1 : timeframe === '7D' ? 7 : timeframe === '30D' ? 30 : 365;
+      const days = timeframe === '1H' ? 1 : timeframe === '24H' ? 1 : timeframe === '7D' ? 7 : timeframe === '30D' ? 30 : 365;
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
+        `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`
       );
       const data = await response.json();
       
-      if (data.prices && data.prices.length > 0) {
-        // Sample data points for smooth chart
-        const step = Math.max(1, Math.floor(data.prices.length / 50));
-        const chartPoints = data.prices
-          .filter((_, i) => i % step === 0)
-          .map(([timestamp, value]) => ({
-            value: value,
-            dataPointText: '',
-          }));
-        setChartData(chartPoints);
+      if (Array.isArray(data) && data.length > 0) {
+        // OHLC data: [timestamp, open, high, low, close]
+        const candles = data.map(([timestamp, open, high, low, close]) => ({
+          time: timestamp,
+          open,
+          high,
+          low,
+          close,
+        }));
+        setChartData(candles);
       }
     } catch (error) {
       console.error('Chart error:', error);
-      // Generate mock data if API fails
-      const mockData = Array.from({ length: 30 }, (_, i) => ({
-        value: price * (0.95 + Math.random() * 0.1),
-      }));
-      setChartData(mockData);
+      // Generate mock candlestick data
+      const basePrice = price || 100;
+      const mockCandles = Array.from({ length: 50 }, (_, i) => {
+        const open = basePrice * (0.97 + Math.random() * 0.06);
+        const close = basePrice * (0.97 + Math.random() * 0.06);
+        const high = Math.max(open, close) * (1 + Math.random() * 0.02);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.02);
+        return { time: Date.now() - (50 - i) * 3600000, open, high, low, close };
+      });
+      setChartData(mockCandles);
     } finally {
       setChartLoading(false);
     }
-  };
-
-  const getTokenColor = () => {
-    const colors = {
-      BTC: '#F7931A', ETH: '#627EEA', SOL: '#00FFA3', BNB: '#F3BA2F',
-      XRP: '#23292F', ADA: '#0033AD', DOGE: '#C3A634', AVAX: '#E84142',
-      TON: '#0098EA', MATIC: '#8247E5', USDC: '#2775CA',
-    };
-    return colors[symbol] || '#00FFF0';
   };
 
   const calculateTokenAmount = () => {
@@ -172,7 +220,6 @@ export default function TradePage() {
     setLoading(true);
     
     try {
-      // Simulate blockchain confirmation
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const holdings = await AsyncStorage.getItem('token_holdings');
@@ -195,28 +242,21 @@ export default function TradePage() {
         tokensBought = inputAmount;
       }
       
-      // Ensure valid numbers
       if (!isFinite(newHolding)) newHolding = 0;
       if (newHolding < 0.00000001) newHolding = 0;
       
-      // Save balances
-      await AsyncStorage.setItem('demo_balance', newBalance.toString());
       tokenHoldings[symbol] = newHolding;
       await AsyncStorage.setItem('token_holdings', JSON.stringify(tokenHoldings));
+      await AsyncStorage.setItem('demo_balance', newBalance.toString());
       
-      // Update swap count and check for rewards
-      const currentSwapCount = swapCount + 1;
-      await AsyncStorage.setItem('swap_count', currentSwapCount.toString());
-      setSwapCount(currentSwapCount);
-      
-      // REWARD: Free tokens for first 10 trades!
-      let rewardMessage = '';
-      if (currentSwapCount <= 10) {
-        const rewardAmount = 5; // $5 bonus per trade
-        const newBalanceWithReward = newBalance + rewardAmount;
-        await AsyncStorage.setItem('demo_balance', newBalanceWithReward.toString());
-        newBalance = newBalanceWithReward;
-        rewardMessage = `\n\n🎁 Trade Reward: +$${rewardAmount} USDC (${currentSwapCount}/10 trades)`;
+      // Trade rewards
+      const currentCount = swapCount;
+      if (currentCount < 10) {
+        const bonus = 5;
+        newBalance += bonus;
+        await AsyncStorage.setItem('demo_balance', newBalance.toString());
+        await AsyncStorage.setItem('swap_count', (currentCount + 1).toString());
+        setSwapCount(currentCount + 1);
       }
       
       // Save to history
@@ -224,25 +264,23 @@ export default function TradePage() {
       history.unshift({
         type: mode.toLowerCase(),
         symbol,
-        tokenAmount: mode === 'BUY' ? tokensBought : inputAmount,
-        usdAmount: mode === 'BUY' ? inputAmount : usdValue,
+        amount: mode === 'BUY' ? tokensBought : inputAmount,
         price,
+        usdValue,
         timestamp: Date.now(),
         txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
-        status: 'confirmed',
       });
       await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
       
-      // Update local state
       setBalance(newBalance);
       setTokenHolding(newHolding);
+      setAmount('');
       
+      const bonusText = currentCount < 10 ? '\n\n🎁 +$5 Trade Reward!' : '';
       Alert.alert(
-        `${mode} Successful! 🎉`,
-        mode === 'BUY' 
-          ? `Bought ${tokensBought.toFixed(8)} ${symbol} for $${inputAmount.toFixed(2)}${rewardMessage}`
-          : `Sold ${inputAmount.toFixed(8)} ${symbol} for $${usdValue.toFixed(2)}${rewardMessage}`,
-        [{ text: 'Done', onPress: () => setAmount('') }]
+        `${mode === 'BUY' ? '✅ Bought' : '✅ Sold'} ${symbol}`,
+        `${mode === 'BUY' ? 'Received' : 'Sold'}: ${mode === 'BUY' ? tokensBought.toFixed(8) : inputAmount} ${symbol}\nValue: $${usdValue.toFixed(2)}${bonusText}`,
+        [{ text: 'Done' }]
       );
     } catch (error) {
       Alert.alert('Error', 'Trade failed: ' + error.message);
@@ -251,431 +289,318 @@ export default function TradePage() {
     }
   };
 
-  const isPositive = priceChange >= 0;
-  const chartColor = isPositive ? '#00FFA3' : '#FF4444';
+  const formatVolume = (vol) => {
+    if (vol >= 1e9) return `$${(vol / 1e9).toFixed(2)}B`;
+    if (vol >= 1e6) return `$${(vol / 1e6).toFixed(2)}M`;
+    return `$${vol.toFixed(0)}`;
+  };
+
+  const formatPrice = (p) => {
+    if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (p >= 1) return p.toFixed(2);
+    if (p >= 0.01) return p.toFixed(4);
+    return p.toFixed(8);
+  };
+
+  // Render candlestick chart
+  const renderChart = () => {
+    if (chartLoading || chartData.length === 0) {
+      return (
+        <View style={styles.chartPlaceholder}>
+          <ActivityIndicator size="large" color="#FFF" />
+        </View>
+      );
+    }
+
+    const chartWidth = width - 40;
+    const chartHeight = 200;
+    const candleWidth = Math.max(2, (chartWidth - 40) / chartData.length - 1);
+    
+    const prices = chartData.flatMap(c => [c.high, c.low]);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const priceRange = maxPrice - minPrice || 1;
+    
+    const scaleY = (p) => chartHeight - ((p - minPrice) / priceRange) * (chartHeight - 20) - 10;
+    
+    return (
+      <View style={styles.chartContainer}>
+        <View style={[styles.chart, { width: chartWidth, height: chartHeight }]}>
+          {/* Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+            <View key={i} style={[styles.gridLine, { top: chartHeight * ratio }]} />
+          ))}
+          
+          {/* Candlesticks */}
+          <View style={styles.candlesContainer}>
+            {chartData.slice(-Math.floor(chartWidth / (candleWidth + 1))).map((candle, i) => {
+              const isGreen = candle.close >= candle.open;
+              const bodyTop = scaleY(Math.max(candle.open, candle.close));
+              const bodyBottom = scaleY(Math.min(candle.open, candle.close));
+              const bodyHeight = Math.max(1, bodyBottom - bodyTop);
+              const wickTop = scaleY(candle.high);
+              const wickBottom = scaleY(candle.low);
+              
+              return (
+                <View key={i} style={[styles.candleWrapper, { width: candleWidth + 1 }]}>
+                  {/* Wick */}
+                  <View style={[
+                    styles.wick,
+                    {
+                      top: wickTop,
+                      height: wickBottom - wickTop,
+                      backgroundColor: isGreen ? '#00C853' : '#FF3B30',
+                    }
+                  ]} />
+                  {/* Body */}
+                  <View style={[
+                    styles.candleBody,
+                    {
+                      top: bodyTop,
+                      height: bodyHeight,
+                      width: candleWidth,
+                      backgroundColor: isGreen ? '#00C853' : '#FF3B30',
+                    }
+                  ]} />
+                </View>
+              );
+            })}
+          </View>
+          
+          {/* Price labels */}
+          <View style={styles.priceLabels}>
+            <Text style={styles.priceLabel}>${formatPrice(maxPrice)}</Text>
+            <Text style={styles.priceLabel}>${formatPrice((maxPrice + minPrice) / 2)}</Text>
+            <Text style={styles.priceLabel}>${formatPrice(minPrice)}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
-        <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.content}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-              </TouchableOpacity>
-              <View style={styles.headerCenter}>
-                <View style={styles.logoContainer}>
-                  {logo && !imageError ? (
-                    <Image 
-                      source={{ uri: logo }} 
-                      style={styles.tokenLogoLarge}
-                      onError={() => setImageError(true)}
-                    />
-                  ) : (
-                    <View style={[styles.tokenIconLarge, { backgroundColor: `${getTokenColor()}30` }]}>
-                      <Text style={[styles.tokenIconText, { color: getTokenColor() }]}>{symbol[0]}</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.headerTitle}>{symbol}/USDC</Text>
-              </View>
-              <TouchableOpacity style={styles.favoriteBtn}>
-                <MaterialCommunityIcons name="star-outline" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Price Display */}
-            <View style={styles.priceSection}>
-              <Text style={styles.currentPrice}>
-                ${price < 1 ? price.toFixed(6) : price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
-              <View style={[styles.changeBadge, isPositive ? styles.changePositive : styles.changeNegative]}>
-                <MaterialCommunityIcons 
-                  name={isPositive ? 'trending-up' : 'trending-down'} 
-                  size={16} 
-                  color={isPositive ? '#00FFA3' : '#FF4444'} 
-                />
-                <Text style={[styles.changeText, { color: isPositive ? '#00FFA3' : '#FF4444' }]}>
-                  {isPositive ? '+' : ''}{priceChange.toFixed(2)}%
-                </Text>
-              </View>
-            </View>
-
-            {/* Chart */}
-            <View style={styles.chartContainer}>
-              {chartLoading ? (
-                <View style={styles.chartLoading}>
-                  <ActivityIndicator color="#00FFF0" />
-                </View>
-              ) : chartData.length > 0 ? (
-                <LineChart
-                  data={chartData}
-                  width={width - 48}
-                  height={180}
-                  color={chartColor}
-                  thickness={2}
-                  hideDataPoints
-                  hideYAxisText
-                  hideAxesAndRules
-                  areaChart
-                  startFillColor={chartColor}
-                  endFillColor="transparent"
-                  startOpacity={0.3}
-                  endOpacity={0}
-                  curved
-                  adjustToWidth
-                />
-              ) : null}
-              
-              {/* Timeframe Selector */}
-              <View style={styles.timeframeRow}>
-                {['24H', '7D', '30D', '1Y'].map((tf) => (
-                  <TouchableOpacity
-                    key={tf}
-                    style={[styles.timeframeBtn, timeframe === tf && styles.timeframeBtnActive]}
-                    onPress={() => setTimeframe(tf)}
-                  >
-                    <Text style={[styles.timeframeText, timeframe === tf && styles.timeframeTextActive]}>
-                      {tf}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Balance Cards */}
-            <View style={styles.balanceRow}>
-              <View style={styles.balanceCard}>
-                <Text style={styles.balanceLabel}>Available USDC</Text>
-                <Text style={styles.balanceValue}>${balance.toFixed(2)}</Text>
-              </View>
-              <View style={styles.balanceCard}>
-                <Text style={styles.balanceLabel}>{symbol} Holdings</Text>
-                <Text style={styles.balanceValue}>
-                  {tokenHolding > 0 ? tokenHolding.toFixed(8) : '0.00'}
-                </Text>
-                {tokenHolding > 0 && (
-                  <Text style={styles.balanceUsd}>≈ ${(tokenHolding * price).toFixed(2)}</Text>
-                )}
-              </View>
-            </View>
-
-            {/* Trade Reward Banner */}
-            {swapCount < 10 && (
-              <View style={styles.rewardBanner}>
-                <MaterialCommunityIcons name="gift" size={20} color="#FFD700" />
-                <Text style={styles.rewardText}>
-                  🎁 Trade Rewards: Get $5 USDC bonus per trade! ({swapCount}/10 trades)
-                </Text>
-              </View>
-            )}
-
-            {/* Buy/Sell Toggle */}
-            <View style={styles.modeSelector}>
-              <TouchableOpacity 
-                style={[styles.modeButton, mode === 'BUY' && styles.modeBuyActive]}
-                onPress={() => { setMode('BUY'); setAmount(''); }}
-              >
-                <MaterialCommunityIcons name="arrow-bottom-left" size={18} color={mode === 'BUY' ? '#00FFA3' : '#666'} />
-                <Text style={[styles.modeText, mode === 'BUY' && styles.modeBuyText]}>BUY</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modeButton, mode === 'SELL' && styles.modeSellActive]}
-                onPress={() => { setMode('SELL'); setAmount(''); }}
-              >
-                <MaterialCommunityIcons name="arrow-top-right" size={18} color={mode === 'SELL' ? '#FF4444' : '#666'} />
-                <Text style={[styles.modeText, mode === 'SELL' && styles.modeSellText]}>SELL</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Amount Input */}
-            <View style={styles.inputCard}>
-              <View style={styles.inputHeader}>
-                <Text style={styles.inputLabel}>
-                  {mode === 'BUY' ? 'Spend (USDC)' : `Sell (${symbol})`}
-                </Text>
-                <TouchableOpacity 
-                  onPress={() => {
-                    if (mode === 'BUY') {
-                      setAmount(balance.toFixed(2));
-                    } else {
-                      setAmount(tokenHolding.toFixed(8));
-                    }
-                  }}
-                >
-                  <Text style={styles.maxBtn}>MAX</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.inputRow}>
-                {mode === 'BUY' && <Text style={styles.inputPrefix}>$</Text>}
-                <TextInput
-                  style={styles.input}
-                  placeholder="0.00"
-                  placeholderTextColor="#444"
-                  value={amount}
-                  onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
-                  keyboardType="decimal-pad"
-                />
-                <Text style={styles.inputSuffix}>{mode === 'BUY' ? 'USDC' : symbol}</Text>
-              </View>
-              <View style={styles.conversionRow}>
-                <MaterialCommunityIcons name="swap-vertical" size={16} color="#666" />
-                <Text style={styles.conversionText}>
-                  {mode === 'BUY' 
-                    ? `≈ ${calculateTokenAmount()} ${symbol}`
-                    : `≈ $${calculateUsdValue()} USDC`
-                  }
-                </Text>
-              </View>
-            </View>
-
-            {/* Quick Amounts */}
-            <View style={styles.quickAmounts}>
-              {mode === 'BUY' ? (
-                ['100', '250', '500', '1000'].map((val) => (
-                  <TouchableOpacity 
-                    key={val} 
-                    style={[styles.quickBtn, amount === val && styles.quickBtnActive]}
-                    onPress={() => setAmount(val)}
-                  >
-                    <Text style={[styles.quickBtnText, amount === val && styles.quickBtnTextActive]}>${val}</Text>
-                  </TouchableOpacity>
-                ))
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <View style={styles.tokenHeader}>
+              {logo && !imageError ? (
+                <Image source={{ uri: logo }} style={styles.headerLogo} onError={() => setImageError(true)} />
               ) : (
-                ['25%', '50%', '75%', '100%'].map((val, i) => (
-                  <TouchableOpacity 
-                    key={val} 
-                    style={styles.quickBtn}
-                    onPress={() => {
-                      const pct = [0.25, 0.5, 0.75, 1][i];
-                      setAmount((tokenHolding * pct).toFixed(8));
-                    }}
-                  >
-                    <Text style={styles.quickBtnText}>{val}</Text>
-                  </TouchableOpacity>
-                ))
+                <View style={styles.headerLogoFallback}>
+                  <Text style={styles.headerLogoText}>{symbol[0]}</Text>
+                </View>
               )}
-            </View>
-
-            {/* Order Summary */}
-            {amount && parseFloat(amount) > 0 && (
-              <View style={styles.summaryCard}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Price</Text>
-                  <Text style={styles.summaryValue}>${price.toLocaleString()}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>
-                    {mode === 'BUY' ? 'You receive' : 'You get'}
-                  </Text>
-                  <Text style={styles.summaryValue}>
-                    {mode === 'BUY' 
-                      ? `${calculateTokenAmount()} ${symbol}`
-                      : `$${calculateUsdValue()} USDC`
-                    }
-                  </Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Fee</Text>
-                  <Text style={styles.summaryValue}>$0.00 (Free)</Text>
-                </View>
+              <View>
+                <Text style={styles.headerSymbol}>{symbol}/USDC</Text>
+                <Text style={styles.headerName}>{name}</Text>
               </View>
-            )}
-
-            {/* Trade Button */}
-            <TouchableOpacity 
-              style={[styles.tradeButton, loading && styles.tradeButtonDisabled]} 
-              onPress={executeTrade}
-              disabled={loading || !amount || parseFloat(amount) <= 0}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={mode === 'BUY' ? ['#00FFA3', '#00CC82'] : ['#FF4444', '#CC0000']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.tradeButtonGradient}
-              >
-                {loading ? (
-                  <View style={styles.loadingRow}>
-                    <ActivityIndicator color="#FFF" size="small" />
-                    <Text style={styles.tradeButtonText}>  Processing...</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.tradeButtonText}>
-                    {mode} {symbol}
-                  </Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Security Notice */}
-            <View style={styles.securityNotice}>
-              <MaterialCommunityIcons name="shield-check" size={16} color="#00FFF0" />
-              <Text style={styles.securityText}>
-                Self-custodial • Your keys, your crypto • Base Sepolia Testnet
-              </Text>
             </View>
           </View>
-        </ScrollView>
-      </LinearGradient>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Live Price Display */}
+        <View style={styles.priceSection}>
+          <Text style={styles.livePrice}>${formatPrice(livePrice || price)}</Text>
+          <View style={[styles.changeContainer, priceChange >= 0 ? styles.changePositive : styles.changeNegative]}>
+            <MaterialCommunityIcons 
+              name={priceChange >= 0 ? 'trending-up' : 'trending-down'} 
+              size={16} 
+              color={priceChange >= 0 ? '#00C853' : '#FF3B30'} 
+            />
+            <Text style={[styles.changeText, priceChange >= 0 ? styles.changeTextGreen : styles.changeTextRed]}>
+              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+            </Text>
+          </View>
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>24h High</Text>
+            <Text style={styles.statValue}>${formatPrice(highPrice)}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>24h Low</Text>
+            <Text style={styles.statValue}>${formatPrice(lowPrice)}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>24h Vol</Text>
+            <Text style={styles.statValue}>{formatVolume(volume)}</Text>
+          </View>
+        </View>
+
+        {/* Timeframe Selector */}
+        <View style={styles.timeframeRow}>
+          {['1H', '24H', '7D', '30D', '1Y'].map((tf) => (
+            <TouchableOpacity
+              key={tf}
+              style={[styles.timeframeBtn, timeframe === tf && styles.timeframeBtnActive]}
+              onPress={() => setTimeframe(tf)}
+            >
+              <Text style={[styles.timeframeText, timeframe === tf && styles.timeframeTextActive]}>{tf}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Chart */}
+        {renderChart()}
+
+        {/* Trading Section */}
+        <View style={styles.tradingSection}>
+          {/* Buy/Sell Toggle */}
+          <View style={styles.modeToggle}>
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === 'BUY' && styles.modeBtnBuy]}
+              onPress={() => setMode('BUY')}
+            >
+              <Text style={[styles.modeBtnText, mode === 'BUY' && styles.modeBtnTextActive]}>Buy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === 'SELL' && styles.modeBtnSell]}
+              onPress={() => setMode('SELL')}
+            >
+              <Text style={[styles.modeBtnText, mode === 'SELL' && styles.modeBtnTextActive]}>Sell</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Balance Info */}
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>Available</Text>
+            <Text style={styles.balanceValue}>
+              {mode === 'BUY' ? `$${balance.toFixed(2)} USDC` : `${tokenHolding.toFixed(8)} ${symbol}`}
+            </Text>
+          </View>
+
+          {/* Amount Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>{mode === 'BUY' ? 'Amount (USDC)' : `Amount (${symbol})`}</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0.00"
+                placeholderTextColor="#666"
+                keyboardType="decimal-pad"
+              />
+              <TouchableOpacity 
+                style={styles.maxBtn}
+                onPress={() => setAmount(mode === 'BUY' ? balance.toString() : tokenHolding.toString())}
+              >
+                <Text style={styles.maxBtnText}>MAX</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Conversion Display */}
+          <View style={styles.conversionRow}>
+            <Text style={styles.conversionLabel}>You'll {mode === 'BUY' ? 'receive' : 'get'}</Text>
+            <Text style={styles.conversionValue}>
+              {mode === 'BUY' ? `${calculateTokenAmount()} ${symbol}` : `$${calculateUsdValue()} USDC`}
+            </Text>
+          </View>
+
+          {/* Execute Button */}
+          <TouchableOpacity
+            style={[styles.executeBtn, mode === 'BUY' ? styles.executeBtnBuy : styles.executeBtnSell]}
+            onPress={executeTrade}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.executeBtnText}>{mode === 'BUY' ? `Buy ${symbol}` : `Sell ${symbol}`}</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Trade Rewards */}
+          {swapCount < 10 && (
+            <View style={styles.rewardBanner}>
+              <MaterialCommunityIcons name="gift" size={16} color="#FFD700" />
+              <Text style={styles.rewardText}>Trade Rewards: {10 - swapCount} trades left for $5 bonus each!</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a' },
-  gradient: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   scroll: { flex: 1 },
-  content: { padding: 20, paddingTop: 50, paddingBottom: 100 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  backBtn: { padding: 8, marginLeft: -8 },
-  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logoContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  tokenLogoLarge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  tokenIconLarge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tokenIconText: { fontSize: 18, fontWeight: '700' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFF' },
-  favoriteBtn: { padding: 8 },
-  priceSection: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  currentPrice: { fontSize: 32, fontWeight: '700', color: '#FFF' },
-  changeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
-  },
-  changePositive: { backgroundColor: 'rgba(0, 255, 163, 0.15)' },
-  changeNegative: { backgroundColor: 'rgba(255, 68, 68, 0.15)' },
-  changeText: { fontSize: 14, fontWeight: '600' },
-  chartContainer: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
-  chartLoading: { height: 180, justifyContent: 'center', alignItems: 'center' },
-  timeframeRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 12 },
-  timeframeBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingTop: 50,
+    paddingBottom: 16,
   },
-  timeframeBtnActive: { backgroundColor: 'rgba(0, 255, 240, 0.2)' },
-  timeframeText: { fontSize: 13, color: '#666', fontWeight: '600' },
-  timeframeTextActive: { color: '#00FFF0' },
-  balanceRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  balanceCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  balanceLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
-  balanceValue: { fontSize: 18, fontWeight: '700', color: '#FFF' },
-  balanceUsd: { fontSize: 12, color: '#00FFF0', marginTop: 4 },
-  rewardBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-  },
-  rewardText: { flex: 1, fontSize: 13, color: '#FFD700', fontWeight: '500' },
-  modeSelector: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  modeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    gap: 8,
-  },
-  modeBuyActive: { backgroundColor: 'rgba(0, 255, 163, 0.15)', borderWidth: 1, borderColor: '#00FFA3' },
-  modeSellActive: { backgroundColor: 'rgba(255, 68, 68, 0.15)', borderWidth: 1, borderColor: '#FF4444' },
-  modeText: { fontSize: 16, fontWeight: '700', color: '#666' },
-  modeBuyText: { color: '#00FFA3' },
-  modeSellText: { color: '#FF4444' },
-  inputCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  inputHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  inputLabel: { fontSize: 14, color: '#888' },
-  maxBtn: { fontSize: 14, color: '#00FFF0', fontWeight: '700' },
-  inputRow: { flexDirection: 'row', alignItems: 'center' },
-  inputPrefix: { fontSize: 28, fontWeight: '700', color: '#00FFF0', marginRight: 4 },
-  input: { flex: 1, fontSize: 28, fontWeight: '700', color: '#FFF' },
-  inputSuffix: { fontSize: 16, color: '#666', fontWeight: '600' },
-  conversionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 6 },
-  conversionText: { fontSize: 14, color: '#888' },
-  quickAmounts: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  quickBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  quickBtnActive: { borderColor: '#00FFF0', backgroundColor: 'rgba(0, 255, 240, 0.1)' },
-  quickBtnText: { fontSize: 14, color: '#888', fontWeight: '600' },
-  quickBtnTextActive: { color: '#00FFF0' },
-  summaryCard: {
-    backgroundColor: 'rgba(0, 255, 240, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    gap: 12,
-  },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  summaryLabel: { fontSize: 14, color: '#888' },
-  summaryValue: { fontSize: 14, color: '#FFF', fontWeight: '600' },
-  tradeButton: { borderRadius: 14, overflow: 'hidden', marginBottom: 16 },
-  tradeButtonDisabled: { opacity: 0.6 },
-  tradeButtonGradient: { paddingVertical: 18, alignItems: 'center' },
-  tradeButtonText: { fontSize: 18, fontWeight: '700', color: '#FFF' },
-  loadingRow: { flexDirection: 'row', alignItems: 'center' },
-  securityNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  securityText: { fontSize: 12, color: '#666' },
+  backBtn: { padding: 8 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  tokenHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerLogo: { width: 36, height: 36, borderRadius: 18 },
+  headerLogoFallback: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' },
+  headerLogoText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  headerSymbol: { fontSize: 18, fontWeight: '700', color: '#FFF', fontFamily: 'Inter_700Bold' },
+  headerName: { fontSize: 12, color: '#888' },
+  priceSection: { alignItems: 'center', paddingVertical: 16 },
+  livePrice: { fontSize: 36, fontWeight: '700', color: '#FFF', fontFamily: 'Inter_700Bold' },
+  changeContainer: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, marginTop: 8 },
+  changePositive: { backgroundColor: 'rgba(0, 200, 83, 0.15)' },
+  changeNegative: { backgroundColor: 'rgba(255, 59, 48, 0.15)' },
+  changeText: { fontSize: 14, fontWeight: '600' },
+  changeTextGreen: { color: '#00C853' },
+  changeTextRed: { color: '#FF3B30' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#1a1a1a' },
+  statItem: { alignItems: 'center' },
+  statLabel: { fontSize: 11, color: '#666', marginBottom: 4 },
+  statValue: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  timeframeRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 12 },
+  timeframeBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#111' },
+  timeframeBtnActive: { backgroundColor: '#FFF' },
+  timeframeText: { fontSize: 13, fontWeight: '600', color: '#888' },
+  timeframeTextActive: { color: '#000' },
+  chartContainer: { paddingHorizontal: 20, paddingVertical: 16 },
+  chart: { backgroundColor: '#0a0a0a', borderRadius: 12, overflow: 'hidden', position: 'relative' },
+  chartPlaceholder: { height: 200, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a', borderRadius: 12, marginHorizontal: 20 },
+  gridLine: { position: 'absolute', left: 0, right: 40, height: 1, backgroundColor: '#1a1a1a' },
+  candlesContainer: { flexDirection: 'row', alignItems: 'flex-end', height: '100%', paddingRight: 40 },
+  candleWrapper: { alignItems: 'center', position: 'relative', height: '100%' },
+  wick: { position: 'absolute', width: 1 },
+  candleBody: { position: 'absolute', borderRadius: 1 },
+  priceLabels: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 40, justifyContent: 'space-between', paddingVertical: 5 },
+  priceLabel: { fontSize: 8, color: '#666', textAlign: 'right', paddingRight: 4 },
+  tradingSection: { padding: 20, paddingBottom: 100 },
+  modeToggle: { flexDirection: 'row', backgroundColor: '#111', borderRadius: 12, padding: 4, marginBottom: 20 },
+  modeBtn: { flex: 1, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+  modeBtnBuy: { backgroundColor: '#00C853' },
+  modeBtnSell: { backgroundColor: '#FF3B30' },
+  modeBtnText: { fontSize: 16, fontWeight: '700', color: '#888' },
+  modeBtnTextActive: { color: '#000' },
+  balanceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  balanceLabel: { fontSize: 14, color: '#888' },
+  balanceValue: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  inputContainer: { marginBottom: 16 },
+  inputLabel: { fontSize: 13, color: '#888', marginBottom: 8 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', borderRadius: 12, borderWidth: 1, borderColor: '#222' },
+  input: { flex: 1, padding: 16, fontSize: 18, color: '#FFF', fontFamily: 'Inter_600SemiBold' },
+  maxBtn: { paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, backgroundColor: '#222', borderRadius: 8 },
+  maxBtnText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
+  conversionRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: 1, borderColor: '#1a1a1a', marginBottom: 16 },
+  conversionLabel: { fontSize: 14, color: '#888' },
+  conversionValue: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  executeBtn: { paddingVertical: 18, borderRadius: 14, alignItems: 'center', marginBottom: 16 },
+  executeBtnBuy: { backgroundColor: '#00C853' },
+  executeBtnSell: { backgroundColor: '#FF3B30' },
+  executeBtnText: { fontSize: 18, fontWeight: '700', color: '#000', fontFamily: 'Inter_700Bold' },
+  rewardBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: 'rgba(255, 215, 0, 0.1)', borderRadius: 10 },
+  rewardText: { fontSize: 13, color: '#FFD700' },
 });
