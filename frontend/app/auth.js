@@ -12,6 +12,9 @@ import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
+// API base URL
+const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
+
 // Initialize Supabase client
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://waniaxzjdpngqfiyzarh.supabase.co';
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -36,6 +39,57 @@ const generateWallet = async () => {
     privateKey: '0x' + privateKeyHex,
     address: '0x' + addressHash.slice(0, 40),
   };
+};
+
+// Sync account with backend
+const syncAccountWithBackend = async (walletAddress, accountData = null) => {
+  try {
+    if (accountData) {
+      // Sync local data to backend
+      const response = await fetch(`${API_URL}/api/account/sync`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_address: walletAddress,
+          balance: accountData.balance,
+          holdings: accountData.holdings,
+          purchase_info: accountData.purchaseInfo,
+          swap_count: accountData.swapCount,
+          tx_history: accountData.txHistory,
+        }),
+      });
+      return await response.json();
+    } else {
+      // Create or get account
+      const response = await fetch(`${API_URL}/api/account/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_address: walletAddress,
+          provider: 'quickstart',
+        }),
+      });
+      return await response.json();
+    }
+  } catch (error) {
+    console.log('[AUTH] Backend sync error (offline mode):', error.message);
+    return null;
+  }
+};
+
+// Load account from backend
+const loadAccountFromBackend = async (walletAddress) => {
+  try {
+    const response = await fetch(`${API_URL}/api/account/${walletAddress}`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.account;
+    }
+    return null;
+  } catch (error) {
+    console.log('[AUTH] Backend load error:', error.message);
+    return null;
+  }
 };
 
 export default function AuthPage() {
