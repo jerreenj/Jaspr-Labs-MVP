@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
 
 export default function LandingPage() {
   const router = useRouter();
@@ -8,103 +10,148 @@ export default function LandingPage() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <View style={styles.iconWrapper}>
-            <MaterialCommunityIcons name="wallet" size={64} color="#FFF" />
-          </View>
-          <Text style={styles.logoText}>Jaspr</Text>
-          <Text style={styles.tagline}>CEX Features & DEX Freedom</Text>
+        {/* Hero Section */}
+        <View style={styles.hero}>
+          <Text style={styles.brand}>JASPR</Text>
+          <Text style={styles.tagline}>Trade Crypto Like a Pro</Text>
+          <Text style={styles.description}>
+            The power of a centralized exchange with the freedom of self-custody. 
+            Your keys, your crypto, your control.
+          </Text>
         </View>
 
+        {/* Features */}
         <View style={styles.features}>
-          <Feature icon="lock-outline" text="Secure" />
-          <Feature icon="flash" text="Fast" />
-          <Feature icon="shield-check" text="Reliable" />
+          <View style={styles.featureRow}>
+            <View style={styles.feature}>
+              <View style={styles.featureIcon}>
+                <MaterialCommunityIcons name="chart-line" size={28} color="#00C853" />
+              </View>
+              <Text style={styles.featureTitle}>Real-Time Trading</Text>
+              <Text style={styles.featureDesc}>Live charts & instant execution</Text>
+            </View>
+            <View style={styles.feature}>
+              <View style={styles.featureIcon}>
+                <MaterialCommunityIcons name="shield-lock" size={28} color="#FFF" />
+              </View>
+              <Text style={styles.featureTitle}>Self-Custody</Text>
+              <Text style={styles.featureDesc}>You control your private keys</Text>
+            </View>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.feature}>
+              <View style={styles.featureIcon}>
+                <MaterialCommunityIcons name="swap-horizontal" size={28} color="#FFF" />
+              </View>
+              <Text style={styles.featureTitle}>Instant Swaps</Text>
+              <Text style={styles.featureDesc}>Trade 25+ tokens seamlessly</Text>
+            </View>
+            <View style={styles.feature}>
+              <View style={styles.featureIcon}>
+                <MaterialCommunityIcons name="cash-multiple" size={28} color="#FFD700" />
+              </View>
+              <Text style={styles.featureTitle}>Low Fees</Text>
+              <Text style={styles.featureDesc}>0.3% per trade, no hidden costs</Text>
+            </View>
+          </View>
         </View>
 
+        {/* CTA Button */}
         <TouchableOpacity 
           style={styles.button}
           onPress={() => router.push('/auth')}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Launch App</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
+          <Text style={styles.buttonText}>Get Started</Text>
+          <MaterialCommunityIcons name="arrow-right" size={22} color="#000" />
         </TouchableOpacity>
 
-        <Text style={styles.disclaimer}>Base Sepolia Testnet</Text>
+        {/* Trust Badge */}
+        <View style={styles.trustBadge}>
+          <MaterialCommunityIcons name="check-decagram" size={18} color="#00C853" />
+          <Text style={styles.trustText}>$10,000 Demo Balance • No Sign-up Required</Text>
+        </View>
       </View>
-    </View>
-  );
-}
 
-function Feature({ icon, text }) {
-  return (
-    <View style={styles.feature}>
-      <MaterialCommunityIcons name={icon} size={24} color="#FFF" />
-      <Text style={styles.featureText}>{text}</Text>
+      {/* Footer */}
+      <Text style={styles.footer}>Base Sepolia Testnet</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#000',
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    backgroundColor: '#000',
+    paddingHorizontal: 24,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 64,
+  hero: {
+    marginBottom: 40,
   },
-  iconWrapper: {
-    backgroundColor: '#111',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#222',
-  },
-  logoText: {
-    fontSize: 56,
-    fontWeight: '700',
+  brand: {
+    fontSize: 52,
+    fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 2,
-    marginBottom: 8,
+    letterSpacing: 4,
     fontFamily: 'Inter_700Bold',
   },
   tagline: {
-    fontSize: 16,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFF',
+    marginTop: 8,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  description: {
+    fontSize: 17,
     color: '#888',
-    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 26,
+    fontFamily: 'Inter_400Regular',
   },
   features: {
+    marginBottom: 40,
+  },
+  featureRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: 64,
+    marginBottom: 16,
+    gap: 12,
   },
   feature: {
-    alignItems: 'center',
-    gap: 8,
+    flex: 1,
+    backgroundColor: '#111',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#222',
   },
-  featureText: {
-    color: '#888',
+  featureIcon: {
+    marginBottom: 12,
+  },
+  featureTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 4,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  featureDesc: {
     fontSize: 13,
-    fontWeight: '500',
+    color: '#666',
+    fontFamily: 'Inter_400Regular',
   },
   button: {
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
     backgroundColor: '#FFF',
+    borderRadius: 14,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 8,
+    gap: 10,
   },
   buttonText: {
     color: '#000',
@@ -112,9 +159,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'Inter_700Bold',
   },
-  disclaimer: {
-    color: '#444',
+  trustBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 8,
+  },
+  trustText: {
+    color: '#666',
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+  },
+  footer: {
+    color: '#333',
     fontSize: 12,
-    marginTop: 32,
+    textAlign: 'center',
+    paddingBottom: 40,
+    fontFamily: 'Inter_400Regular',
   },
 });
