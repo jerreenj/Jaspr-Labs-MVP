@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "JASPR",
-    "slug": "jaspr",
+    "name": "Jaspr Labs",
+    "slug": "jaspr-labs",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "jaspr",
+    "scheme": "jasprlabs",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jaspr.wallet"
+      "bundleIdentifier": "com.jasprlabs.wallet"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.jaspr.wallet"
+      "package": "com.jasprlabs.wallet"
     },
     "web": {
       "bundler": "metro",
