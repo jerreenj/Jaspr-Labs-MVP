@@ -1,732 +1,737 @@
 diff --git a/model.patch b/model.patch
-index cd22a89..e69de29 100644
+index 6781e7f..e69de29 100644
 --- a/model.patch
 +++ b/model.patch
-@@ -1,690 +0,0 @@
+@@ -1,732 +0,0 @@
 -diff --git a/model.patch b/model.patch
--index 333e730..e69de29 100644
+-index cd22a89..e69de29 100644
 ---- a/model.patch
 -+++ b/model.patch
--@@ -1,566 +0,0 @@
---diff --git a/frontend/app/auth.js b/frontend/app/auth.js
---index 25a3b05..d01fda8 100644
------ a/frontend/app/auth.js
---+++ b/frontend/app/auth.js
---@@ -2,7 +2,7 @@ import 'react-native-get-random-values';
--- import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
--- import { useRouter } from 'expo-router';
--- import { MaterialCommunityIcons } from '@expo/vector-icons';
----import { useState } from 'react';
---+import { useState, useEffect } from 'react';
--- import AsyncStorage from '@react-native-async-storage/async-storage';
--- import * as Crypto from 'expo-crypto';
--- import { createClient } from '@supabase/supabase-js';
---@@ -96,6 +96,56 @@ export default function AuthPage() {
---   const router = useRouter();
---   const [loading, setLoading] = useState(false);
---   const [googleLoading, setGoogleLoading] = useState(false);
---+  const [existingAccount, setExistingAccount] = useState(null);
---+  const [checkingAccount, setCheckingAccount] = useState(true);
---+
---+  // Check for existing account on mount
---+  useEffect(() => {
---+    checkExistingAccount();
---+  }, []);
---+
---+  const checkExistingAccount = async () => {
---+    try {
---+      const savedAddress = await AsyncStorage.getItem('wallet_address');
---+      if (savedAddress) {
---+        // Try to load from backend
---+        const backendAccount = await loadAccountFromBackend(savedAddress);
---+        if (backendAccount) {
---+          setExistingAccount(backendAccount);
---+        }
---+      }
---+    } catch (error) {
---+      console.log('[AUTH] Check existing account error:', error);
---+    } finally {
---+      setCheckingAccount(false);
---+    }
---+  };
---+
---+  const handleContinueExisting = async () => {
---+    if (!existingAccount) return;
---+    
---+    setLoading(true);
---+    try {
---+      // Restore account data to AsyncStorage
---+      await AsyncStorage.setItem('wallet_address', existingAccount.wallet_address);
---+      await AsyncStorage.setItem('is_logged_in', 'true');
---+      await AsyncStorage.setItem('auth_provider', existingAccount.provider || 'quickstart');
---+      await AsyncStorage.setItem('demo_balance', String(existingAccount.balance || 10000));
---+      await AsyncStorage.setItem('token_holdings', JSON.stringify(existingAccount.holdings || {}));
---+      await AsyncStorage.setItem('purchase_info', JSON.stringify(existingAccount.purchase_info || {}));
---+      await AsyncStorage.setItem('swap_count', String(existingAccount.swap_count || 0));
---+      await AsyncStorage.setItem('tx_history', JSON.stringify(existingAccount.tx_history || []));
---+      await AsyncStorage.setItem('username', existingAccount.username || 'User');
---+      
---+      console.log('[AUTH] Restored existing account:', existingAccount.wallet_address);
---+      router.replace('/(tabs)/home');
---+    } catch (error) {
---+      console.error('[AUTH] Error restoring account:', error);
---+      Alert.alert('Error', 'Failed to restore account');
---+    } finally {
---+      setLoading(false);
---+    }
---+  };
--- 
---   const handleQuickStart = async () => {
---     setLoading(true);
---@@ -105,16 +155,37 @@ export default function AuthPage() {
---       const wallet = await generateWallet();
---       console.log('[AUTH] Wallet created:', wallet.address);
---       
----      // Try to sync with backend
---+      // Create account on backend first
---       const backendResult = await syncAccountWithBackend(wallet.address);
----      console.log('[AUTH] Backend sync result:', backendResult);
---+      console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
---+      
---+      // If backend returned existing account with data, use that
---+      let initialBalance = 10000;
---+      let holdings = {};
---+      let purchaseInfo = {};
---+      let swapCount = 0;
---+      let txHistory = [];
---+      
---+      if (backendResult?.account && !backendResult.is_new) {
---+        // Existing account - restore data
---+        initialBalance = backendResult.account.balance || 10000;
---+        holdings = backendResult.account.holdings || {};
---+        purchaseInfo = backendResult.account.purchase_info || {};
---+        swapCount = backendResult.account.swap_count || 0;
---+        txHistory = backendResult.account.tx_history || [];
---+        console.log('[AUTH] Restored existing account data');
---+      }
---       
---       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
---       await AsyncStorage.setItem('wallet_address', wallet.address);
---       await AsyncStorage.setItem('username', 'User');
---       await AsyncStorage.setItem('is_logged_in', 'true');
---       await AsyncStorage.setItem('auth_provider', 'quickstart');
----      await AsyncStorage.setItem('demo_balance', '10000');
---+      await AsyncStorage.setItem('demo_balance', String(initialBalance));
---+      await AsyncStorage.setItem('token_holdings', JSON.stringify(holdings));
---+      await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
---+      await AsyncStorage.setItem('swap_count', String(swapCount));
---+      await AsyncStorage.setItem('tx_history', JSON.stringify(txHistory));
---       
---       console.log('[AUTH] Navigating to home...');
---       router.replace('/(tabs)/home');
---@@ -172,9 +243,26 @@ export default function AuthPage() {
---               // Create wallet for the user
---               const wallet = await generateWallet();
---               
----              // Try to sync with backend
---+              // Create account on backend first
---               const backendResult = await syncAccountWithBackend(wallet.address);
----              console.log('[AUTH] Backend sync result:', backendResult);
---+              console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
---+              
---+              // If backend returned existing account with data, use that
---+              let initialBalance = 10000;
---+              let holdings = {};
---+              let purchaseInfo = {};
---+              let swapCount = 0;
---+              let txHistory = [];
---+              
---+              if (backendResult?.account && !backendResult.is_new) {
---+                // Existing account - restore data
---+                initialBalance = backendResult.account.balance || 10000;
---+                holdings = backendResult.account.holdings || {};
---+                purchaseInfo = backendResult.account.purchase_info || {};
---+                swapCount = backendResult.account.swap_count || 0;
---+                txHistory = backendResult.account.tx_history || [];
---+                console.log('[AUTH] Restored existing Google account data');
---+              }
---               
---               await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
---               await AsyncStorage.setItem('wallet_address', wallet.address);
---@@ -184,7 +272,11 @@ export default function AuthPage() {
---               await AsyncStorage.setItem('is_logged_in', 'true');
---               await AsyncStorage.setItem('auth_provider', 'google');
---               await AsyncStorage.setItem('supabase_user_id', userData.user.id);
----              await AsyncStorage.setItem('demo_balance', '10000');
---+              await AsyncStorage.setItem('demo_balance', String(initialBalance));
---+              await AsyncStorage.setItem('token_holdings', JSON.stringify(holdings));
---+              await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
---+              await AsyncStorage.setItem('swap_count', String(swapCount));
---+              await AsyncStorage.setItem('tx_history', JSON.stringify(txHistory));
---               
---               router.replace('/(tabs)/home');
---               return;
---@@ -222,14 +314,47 @@ export default function AuthPage() {
---         </View>
--- 
---         <View style={styles.buttons}>
---+          {/* Show existing account option if available */}
---+          {existingAccount && !checkingAccount && (
---+            <>
---+              <TouchableOpacity 
---+                style={styles.existingAccountButton}
---+                onPress={handleContinueExisting}
---+                disabled={loading}
---+                activeOpacity={0.8}
---+              >
---+                {loading ? (
---+                  <ActivityIndicator color="#FFF" />
---+                ) : (
---+                  <>
---+                    <MaterialCommunityIcons name="account-check" size={24} color="#FFF" />
---+                    <Text style={styles.existingAccountText}>
---+                      Continue as {existingAccount.username || 'User'}
---+                    </Text>
---+                  </>
---+                )}
---+              </TouchableOpacity>
---+
---+              <Text style={styles.existingAccountHint}>
---+                Wallet: {existingAccount.wallet_address?.slice(0, 6)}...{existingAccount.wallet_address?.slice(-4)}
---+              </Text>
---+
---+              <View style={styles.divider}>
---+                <View style={styles.dividerLine} />
---+                <Text style={styles.dividerText}>or create new</Text>
---+                <View style={styles.dividerLine} />
---+              </View>
---+            </>
---+          )}
---+
---           {/* Quick Start Button */}
---           <TouchableOpacity 
---             style={styles.button}
---             onPress={handleQuickStart}
----            disabled={loading}
---+            disabled={loading || checkingAccount}
---             activeOpacity={0.8}
---           >
----            {loading ? (
---+            {(loading && !existingAccount) || checkingAccount ? (
---               <ActivityIndicator color="#000" />
---             ) : (
---               <>
---@@ -251,7 +376,7 @@ export default function AuthPage() {
---           <TouchableOpacity 
---             style={styles.googleButton}
---             onPress={handleGoogleLogin}
----            disabled={googleLoading}
---+            disabled={googleLoading || checkingAccount}
---             activeOpacity={0.8}
---           >
---             {googleLoading ? (
---@@ -340,6 +465,30 @@ const styles = StyleSheet.create({
---     marginTop: 8,
---     fontFamily: 'Inter_400Regular',
---   },
---+  existingAccountButton: {
---+    width: '100%',
---+    borderRadius: 14,
---+    backgroundColor: '#00C853',
---+    flexDirection: 'row',
---+    alignItems: 'center',
---+    justifyContent: 'center',
---+    paddingVertical: 18,
---+    gap: 10,
---+    marginBottom: 8,
---+  },
---+  existingAccountText: {
---+    color: '#FFF',
---+    fontSize: 18,
---+    fontWeight: '700',
---+    fontFamily: 'Inter_700Bold',
---+  },
---+  existingAccountHint: {
---+    textAlign: 'center',
---+    color: '#666',
---+    fontSize: 12,
---+    marginBottom: 16,
---+    fontFamily: 'Inter_400Regular',
---+  },
---   divider: {
---     flexDirection: 'row',
---     alignItems: 'center',
+-@@ -1,690 +0,0 @@
 --diff --git a/model.patch b/model.patch
---index 22dc1aa..f7f9ced 100644
+--index 333e730..e69de29 100644
 ----- a/model.patch
 --+++ b/model.patch
---@@ -1,318 +0,0 @@
+--@@ -1,566 +0,0 @@
 ---diff --git a/frontend/app/auth.js b/frontend/app/auth.js
----index 2e1384d..25a3b05 100644
+---index 25a3b05..d01fda8 100644
 ------ a/frontend/app/auth.js
 ---+++ b/frontend/app/auth.js
----@@ -12,6 +12,9 @@ import Constants from 'expo-constants';
---- 
---- WebBrowser.maybeCompleteAuthSession();
---- 
----+// API base URL
----+const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
----+
---- // Initialize Supabase client
---- const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://waniaxzjdpngqfiyzarh.supabase.co';
---- const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
----@@ -38,6 +41,57 @@ const generateWallet = async () => {
----   };
---- };
---- 
----+// Sync account with backend
----+const syncAccountWithBackend = async (walletAddress, accountData = null) => {
----+  try {
----+    if (accountData) {
----+      // Sync local data to backend
----+      const response = await fetch(`${API_URL}/api/account/sync`, {
----+        method: 'PUT',
----+        headers: { 'Content-Type': 'application/json' },
----+        body: JSON.stringify({
----+          wallet_address: walletAddress,
----+          balance: accountData.balance,
----+          holdings: accountData.holdings,
----+          purchase_info: accountData.purchaseInfo,
----+          swap_count: accountData.swapCount,
----+          tx_history: accountData.txHistory,
----+        }),
----+      });
----+      return await response.json();
----+    } else {
----+      // Create or get account
----+      const response = await fetch(`${API_URL}/api/account/create`, {
----+        method: 'POST',
----+        headers: { 'Content-Type': 'application/json' },
----+        body: JSON.stringify({
----+          wallet_address: walletAddress,
----+          provider: 'quickstart',
----+        }),
----+      });
----+      return await response.json();
----+    }
----+  } catch (error) {
----+    console.log('[AUTH] Backend sync error (offline mode):', error.message);
----+    return null;
----+  }
----+};
----+
----+// Load account from backend
----+const loadAccountFromBackend = async (walletAddress) => {
----+  try {
----+    const response = await fetch(`${API_URL}/api/account/${walletAddress}`);
----+    if (response.ok) {
----+      const data = await response.json();
----+      return data.account;
----+    }
----+    return null;
----+  } catch (error) {
----+    console.log('[AUTH] Backend load error:', error.message);
----+    return null;
----+  }
----+};
----+
---- export default function AuthPage() {
+---@@ -2,7 +2,7 @@ import 'react-native-get-random-values';
+--- import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+--- import { useRouter } from 'expo-router';
+--- import { MaterialCommunityIcons } from '@expo/vector-icons';
+----import { useState } from 'react';
+---+import { useState, useEffect } from 'react';
+--- import AsyncStorage from '@react-native-async-storage/async-storage';
+--- import * as Crypto from 'expo-crypto';
+--- import { createClient } from '@supabase/supabase-js';
+---@@ -96,6 +96,56 @@ export default function AuthPage() {
 ---   const router = useRouter();
 ---   const [loading, setLoading] = useState(false);
----@@ -51,6 +105,10 @@ export default function AuthPage() {
+---   const [googleLoading, setGoogleLoading] = useState(false);
+---+  const [existingAccount, setExistingAccount] = useState(null);
+---+  const [checkingAccount, setCheckingAccount] = useState(true);
+---+
+---+  // Check for existing account on mount
+---+  useEffect(() => {
+---+    checkExistingAccount();
+---+  }, []);
+---+
+---+  const checkExistingAccount = async () => {
+---+    try {
+---+      const savedAddress = await AsyncStorage.getItem('wallet_address');
+---+      if (savedAddress) {
+---+        // Try to load from backend
+---+        const backendAccount = await loadAccountFromBackend(savedAddress);
+---+        if (backendAccount) {
+---+          setExistingAccount(backendAccount);
+---+        }
+---+      }
+---+    } catch (error) {
+---+      console.log('[AUTH] Check existing account error:', error);
+---+    } finally {
+---+      setCheckingAccount(false);
+---+    }
+---+  };
+---+
+---+  const handleContinueExisting = async () => {
+---+    if (!existingAccount) return;
+---+    
+---+    setLoading(true);
+---+    try {
+---+      // Restore account data to AsyncStorage
+---+      await AsyncStorage.setItem('wallet_address', existingAccount.wallet_address);
+---+      await AsyncStorage.setItem('is_logged_in', 'true');
+---+      await AsyncStorage.setItem('auth_provider', existingAccount.provider || 'quickstart');
+---+      await AsyncStorage.setItem('demo_balance', String(existingAccount.balance || 10000));
+---+      await AsyncStorage.setItem('token_holdings', JSON.stringify(existingAccount.holdings || {}));
+---+      await AsyncStorage.setItem('purchase_info', JSON.stringify(existingAccount.purchase_info || {}));
+---+      await AsyncStorage.setItem('swap_count', String(existingAccount.swap_count || 0));
+---+      await AsyncStorage.setItem('tx_history', JSON.stringify(existingAccount.tx_history || []));
+---+      await AsyncStorage.setItem('username', existingAccount.username || 'User');
+---+      
+---+      console.log('[AUTH] Restored existing account:', existingAccount.wallet_address);
+---+      router.replace('/(tabs)/home');
+---+    } catch (error) {
+---+      console.error('[AUTH] Error restoring account:', error);
+---+      Alert.alert('Error', 'Failed to restore account');
+---+    } finally {
+---+      setLoading(false);
+---+    }
+---+  };
+--- 
+---   const handleQuickStart = async () => {
+---     setLoading(true);
+---@@ -105,16 +155,37 @@ export default function AuthPage() {
 ---       const wallet = await generateWallet();
 ---       console.log('[AUTH] Wallet created:', wallet.address);
 ---       
----+      // Try to sync with backend
----+      const backendResult = await syncAccountWithBackend(wallet.address);
----+      console.log('[AUTH] Backend sync result:', backendResult);
+----      // Try to sync with backend
+---+      // Create account on backend first
+---       const backendResult = await syncAccountWithBackend(wallet.address);
+----      console.log('[AUTH] Backend sync result:', backendResult);
+---+      console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
 ---+      
+---+      // If backend returned existing account with data, use that
+---+      let initialBalance = 10000;
+---+      let holdings = {};
+---+      let purchaseInfo = {};
+---+      let swapCount = 0;
+---+      let txHistory = [];
+---+      
+---+      if (backendResult?.account && !backendResult.is_new) {
+---+        // Existing account - restore data
+---+        initialBalance = backendResult.account.balance || 10000;
+---+        holdings = backendResult.account.holdings || {};
+---+        purchaseInfo = backendResult.account.purchase_info || {};
+---+        swapCount = backendResult.account.swap_count || 0;
+---+        txHistory = backendResult.account.tx_history || [];
+---+        console.log('[AUTH] Restored existing account data');
+---+      }
+---       
 ---       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
 ---       await AsyncStorage.setItem('wallet_address', wallet.address);
 ---       await AsyncStorage.setItem('username', 'User');
----@@ -114,6 +172,10 @@ export default function AuthPage() {
+---       await AsyncStorage.setItem('is_logged_in', 'true');
+---       await AsyncStorage.setItem('auth_provider', 'quickstart');
+----      await AsyncStorage.setItem('demo_balance', '10000');
+---+      await AsyncStorage.setItem('demo_balance', String(initialBalance));
+---+      await AsyncStorage.setItem('token_holdings', JSON.stringify(holdings));
+---+      await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
+---+      await AsyncStorage.setItem('swap_count', String(swapCount));
+---+      await AsyncStorage.setItem('tx_history', JSON.stringify(txHistory));
+---       
+---       console.log('[AUTH] Navigating to home...');
+---       router.replace('/(tabs)/home');
+---@@ -172,9 +243,26 @@ export default function AuthPage() {
 ---               // Create wallet for the user
 ---               const wallet = await generateWallet();
 ---               
----+              // Try to sync with backend
----+              const backendResult = await syncAccountWithBackend(wallet.address);
----+              console.log('[AUTH] Backend sync result:', backendResult);
+----              // Try to sync with backend
+---+              // Create account on backend first
+---               const backendResult = await syncAccountWithBackend(wallet.address);
+----              console.log('[AUTH] Backend sync result:', backendResult);
+---+              console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
 ---+              
+---+              // If backend returned existing account with data, use that
+---+              let initialBalance = 10000;
+---+              let holdings = {};
+---+              let purchaseInfo = {};
+---+              let swapCount = 0;
+---+              let txHistory = [];
+---+              
+---+              if (backendResult?.account && !backendResult.is_new) {
+---+                // Existing account - restore data
+---+                initialBalance = backendResult.account.balance || 10000;
+---+                holdings = backendResult.account.holdings || {};
+---+                purchaseInfo = backendResult.account.purchase_info || {};
+---+                swapCount = backendResult.account.swap_count || 0;
+---+                txHistory = backendResult.account.tx_history || [];
+---+                console.log('[AUTH] Restored existing Google account data');
+---+              }
+---               
 ---               await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
 ---               await AsyncStorage.setItem('wallet_address', wallet.address);
----               await AsyncStorage.setItem('username', userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'User');
+---@@ -184,7 +272,11 @@ export default function AuthPage() {
+---               await AsyncStorage.setItem('is_logged_in', 'true');
+---               await AsyncStorage.setItem('auth_provider', 'google');
+---               await AsyncStorage.setItem('supabase_user_id', userData.user.id);
+----              await AsyncStorage.setItem('demo_balance', '10000');
+---+              await AsyncStorage.setItem('demo_balance', String(initialBalance));
+---+              await AsyncStorage.setItem('token_holdings', JSON.stringify(holdings));
+---+              await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
+---+              await AsyncStorage.setItem('swap_count', String(swapCount));
+---+              await AsyncStorage.setItem('tx_history', JSON.stringify(txHistory));
+---               
+---               router.replace('/(tabs)/home');
+---               return;
+---@@ -222,14 +314,47 @@ export default function AuthPage() {
+---         </View>
+--- 
+---         <View style={styles.buttons}>
+---+          {/* Show existing account option if available */}
+---+          {existingAccount && !checkingAccount && (
+---+            <>
+---+              <TouchableOpacity 
+---+                style={styles.existingAccountButton}
+---+                onPress={handleContinueExisting}
+---+                disabled={loading}
+---+                activeOpacity={0.8}
+---+              >
+---+                {loading ? (
+---+                  <ActivityIndicator color="#FFF" />
+---+                ) : (
+---+                  <>
+---+                    <MaterialCommunityIcons name="account-check" size={24} color="#FFF" />
+---+                    <Text style={styles.existingAccountText}>
+---+                      Continue as {existingAccount.username || 'User'}
+---+                    </Text>
+---+                  </>
+---+                )}
+---+              </TouchableOpacity>
+---+
+---+              <Text style={styles.existingAccountHint}>
+---+                Wallet: {existingAccount.wallet_address?.slice(0, 6)}...{existingAccount.wallet_address?.slice(-4)}
+---+              </Text>
+---+
+---+              <View style={styles.divider}>
+---+                <View style={styles.dividerLine} />
+---+                <Text style={styles.dividerText}>or create new</Text>
+---+                <View style={styles.dividerLine} />
+---+              </View>
+---+            </>
+---+          )}
+---+
+---           {/* Quick Start Button */}
+---           <TouchableOpacity 
+---             style={styles.button}
+---             onPress={handleQuickStart}
+----            disabled={loading}
+---+            disabled={loading || checkingAccount}
+---             activeOpacity={0.8}
+---           >
+----            {loading ? (
+---+            {(loading && !existingAccount) || checkingAccount ? (
+---               <ActivityIndicator color="#000" />
+---             ) : (
+---               <>
+---@@ -251,7 +376,7 @@ export default function AuthPage() {
+---           <TouchableOpacity 
+---             style={styles.googleButton}
+---             onPress={handleGoogleLogin}
+----            disabled={googleLoading}
+---+            disabled={googleLoading || checkingAccount}
+---             activeOpacity={0.8}
+---           >
+---             {googleLoading ? (
+---@@ -340,6 +465,30 @@ const styles = StyleSheet.create({
+---     marginTop: 8,
+---     fontFamily: 'Inter_400Regular',
+---   },
+---+  existingAccountButton: {
+---+    width: '100%',
+---+    borderRadius: 14,
+---+    backgroundColor: '#00C853',
+---+    flexDirection: 'row',
+---+    alignItems: 'center',
+---+    justifyContent: 'center',
+---+    paddingVertical: 18,
+---+    gap: 10,
+---+    marginBottom: 8,
+---+  },
+---+  existingAccountText: {
+---+    color: '#FFF',
+---+    fontSize: 18,
+---+    fontWeight: '700',
+---+    fontFamily: 'Inter_700Bold',
+---+  },
+---+  existingAccountHint: {
+---+    textAlign: 'center',
+---+    color: '#666',
+---+    fontSize: 12,
+---+    marginBottom: 16,
+---+    fontFamily: 'Inter_400Regular',
+---+  },
+---   divider: {
+---     flexDirection: 'row',
+---     alignItems: 'center',
 ---diff --git a/model.patch b/model.patch
----index a014a49..e69de29 100644
+---index 22dc1aa..f7f9ced 100644
 ------ a/model.patch
 ---+++ b/model.patch
----@@ -1,219 +0,0 @@
-----diff --git a/frontend/app/(tabs)/wallet.js b/frontend/app/(tabs)/wallet.js
-----index d956645..e51676a 100644
-------- a/frontend/app/(tabs)/wallet.js
-----+++ b/frontend/app/(tabs)/wallet.js
-----@@ -282,7 +282,7 @@ export default function WalletPage() {
+---@@ -1,318 +0,0 @@
+----diff --git a/frontend/app/auth.js b/frontend/app/auth.js
+----index 2e1384d..25a3b05 100644
+------- a/frontend/app/auth.js
+----+++ b/frontend/app/auth.js
+----@@ -12,6 +12,9 @@ import Constants from 'expo-constants';
 ---- 
-----   const getTokenColor = (symbol) => {
-----     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
------    return colors[symbol] || '#00FFF0';
-----+    return colors[symbol] || '#888';
+---- WebBrowser.maybeCompleteAuthSession();
+---- 
+----+// API base URL
+----+const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
+----+
+---- // Initialize Supabase client
+---- const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://waniaxzjdpngqfiyzarh.supabase.co';
+---- const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+----@@ -38,6 +41,57 @@ const generateWallet = async () => {
 ----   };
+---- };
 ---- 
-----   // Wallet holdings (self-custodial - only shows deposited funds)
-----@@ -322,7 +322,7 @@ export default function WalletPage() {
----- 
-----             {/* Info Banner - Explain self-custodial */}
-----             <View style={styles.infoCard}>
------              <MaterialCommunityIcons name="information-outline" size={20} color="#00B8D4" />
-----+              <MaterialCommunityIcons name="information-outline" size={20} color="#888" />
-----               <Text style={styles.infoText}>
-----                 This is your self-custodial wallet. Deposit funds from your exchange to keep them safe. Only you control these assets.
-----               </Text>
-----@@ -340,14 +340,14 @@ export default function WalletPage() {
-----             {/* Wallet Address */}
-----             <View style={styles.addressCard}>
-----               <View style={styles.addressHeader}>
------                <MaterialCommunityIcons name="wallet" size={20} color="#00FFF0" />
-----+                <MaterialCommunityIcons name="wallet" size={20} color="#888" />
-----                 <Text style={styles.addressTitle}>Your Wallet Address</Text>
-----               </View>
-----               <TouchableOpacity onPress={copyAddress} style={styles.addressBox}>
-----                 <Text style={styles.addressText} numberOfLines={1}>
-----                   {walletAddress ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-14)}` : 'Loading...'}
-----                 </Text>
------                <MaterialCommunityIcons name="content-copy" size={18} color="#00FFF0" />
-----+                <MaterialCommunityIcons name="content-copy" size={18} color="#888" />
-----               </TouchableOpacity>
-----             </View>
----- 
-----@@ -371,7 +371,7 @@ export default function WalletPage() {
----- 
-----               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
-----                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
------                  <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
-----+                  <MaterialCommunityIcons name="history" size={24} color="#888" />
-----                 </View>
-----                 <Text style={styles.actionText}>History</Text>
-----                 <Text style={styles.actionSubtext}>View All</Text>
-----@@ -407,7 +407,7 @@ export default function WalletPage() {
-----                   <Text style={styles.emptyTitle}>Wallet is Empty</Text>
-----                   <Text style={styles.emptyText}>Deposit funds from your exchange to keep them safe in your self-custodial wallet</Text>
-----                   <TouchableOpacity style={styles.emptyButton} onPress={handleDeposit}>
------                    <LinearGradient colors={['#00FFA3', '#00B8D4']} style={styles.emptyButtonGradient}>
-----+                    <LinearGradient colors={['#FFF', '#FFF']} style={styles.emptyButtonGradient}>
-----                       <MaterialCommunityIcons name="bank-transfer-in" size={18} color="#000" />
-----                       <Text style={styles.emptyButtonText}>Deposit from Exchange</Text>
-----                     </LinearGradient>
-----@@ -427,7 +427,7 @@ export default function WalletPage() {
-----             </TouchableOpacity>
----- 
-----             <View style={styles.warningCard}>
------              <MaterialCommunityIcons name="shield-check" size={20} color="#00FFF0" />
-----+              <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
-----               <Text style={styles.warningText}>
-----                 Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
-----               </Text>
-----@@ -476,7 +476,7 @@ export default function WalletPage() {
-----             <Text style={styles.depositLabel}>Send to this address:</Text>
-----             <TouchableOpacity onPress={copyAddress} style={styles.depositAddressBox}>
-----               <Text style={styles.depositAddressText} numberOfLines={2}>{walletAddress}</Text>
------              <MaterialCommunityIcons name="content-copy" size={20} color="#00FFF0" />
-----+              <MaterialCommunityIcons name="content-copy" size={20} color="#888" />
-----             </TouchableOpacity>
----- 
-----             <View style={styles.depositInfo}>
-----@@ -578,7 +578,7 @@ function AssetItem({ symbol, amount, value, onPress }) {
-----   
-----   const getTokenColor = (sym) => {
-----     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
------    return colors[sym] || '#00FFF0';
-----+    return colors[sym] || '#888';
-----   };
-----   
-----   return (
-----@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
-----     padding: 16,
-----     marginBottom: 20,
-----     borderWidth: 1,
------    borderColor: 'rgba(255, 255, 255, 0.08)',
-----+    borderColor: '#222',
-----   },
-----   addressHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-----   addressTitle: { fontSize: 13, color: '#888' },
-----@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
-----     flexDirection: 'row',
-----     alignItems: 'center',
-----     justifyContent: 'space-between',
------    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-----+    backgroundColor: '#0a0a0a',
-----     padding: 12,
-----     borderRadius: 8,
-----   },
-----@@ -673,11 +673,11 @@ const styles = StyleSheet.create({
-----     flexDirection: 'row',
-----     justifyContent: 'space-between',
-----     alignItems: 'center',
------    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-----+    backgroundColor: '#111',
-----     borderRadius: 14,
-----     padding: 16,
-----     borderWidth: 1,
------    borderColor: 'rgba(255, 255, 255, 0.08)',
-----+    borderColor: '#222',
-----   },
-----   assetLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-----   assetIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-----@@ -687,25 +687,25 @@ const styles = StyleSheet.create({
-----   assetRight: { alignItems: 'flex-end' },
-----   assetBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
-----   assetValue: { fontSize: 12, color: '#888', marginTop: 2 },
------  emptyState: { alignItems: 'center', padding: 32 },
-----+  emptyState: { alignItems: 'center', padding: 32, backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: '#222' },
-----   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#888', marginTop: 12 },
-----   emptyText: { fontSize: 14, color: '#666', marginTop: 8, textAlign: 'center', lineHeight: 20 },
------  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
------  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
-----+  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFF' },
-----+  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFF' },
-----   emptyButtonText: { fontSize: 16, fontWeight: '700', color: '#000' },
-----   // Info card
-----   infoCard: {
-----     flexDirection: 'row',
-----     alignItems: 'flex-start',
------    backgroundColor: 'rgba(0, 184, 212, 0.1)',
-----+    backgroundColor: '#111',
-----     padding: 14,
-----     borderRadius: 12,
-----     marginBottom: 16,
-----     gap: 10,
-----     borderWidth: 1,
------    borderColor: 'rgba(0, 184, 212, 0.2)',
-----+    borderColor: '#222',
-----   },
------  infoText: { flex: 1, fontSize: 13, color: '#00B8D4', lineHeight: 18 },
-----+  infoText: { flex: 1, fontSize: 13, color: '#888', lineHeight: 18 },
-----   // On-chain logo
-----   onChainLogo: { width: 24, height: 24, borderRadius: 12 },
-----   // Asset logo styles
-----@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
-----     height: 44,
-----     borderRadius: 22,
-----     overflow: 'hidden',
------    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-----+    backgroundColor: '#1a1a1a',
-----   },
-----   assetLogo: {
-----     width: 44,
-----@@ -734,19 +734,19 @@ const styles = StyleSheet.create({
-----     flexDirection: 'row',
-----     justifyContent: 'space-between',
-----     alignItems: 'center',
------    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-----+    backgroundColor: '#111',
-----     borderRadius: 12,
-----     padding: 16,
-----     marginBottom: 16,
-----     borderWidth: 1,
------    borderColor: 'rgba(255, 255, 255, 0.08)',
-----+    borderColor: '#222',
-----   },
-----   securityLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-----   securityText: { fontSize: 15, color: '#FFF' },
-----   warningCard: {
-----     flexDirection: 'row',
-----     alignItems: 'center',
------    backgroundColor: 'rgba(0, 255, 240, 0.05)',
-----+    backgroundColor: '#111',
-----     padding: 16,
-----     borderRadius: 12,
-----     gap: 12,
-----@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
-----     borderRadius: 12,
-----     justifyContent: 'center',
-----   },
------  maxBtnText: { color: '#00FFF0', fontWeight: '700' },
-----+  maxBtnText: { color: '#888', fontWeight: '700' },
-----   feeInfo: {
-----     flexDirection: 'row',
-----     justifyContent: 'space-between',
-----@@ -862,5 +862,5 @@ const styles = StyleSheet.create({
-----     alignItems: 'center',
-----     padding: 12,
-----   },
------  faucetBtnText: { color: '#00FFF0', fontSize: 14, fontWeight: '600' },
-----+  faucetBtnText: { color: '#888', fontSize: 14, fontWeight: '600' },
----- });
+----+// Sync account with backend
+----+const syncAccountWithBackend = async (walletAddress, accountData = null) => {
+----+  try {
+----+    if (accountData) {
+----+      // Sync local data to backend
+----+      const response = await fetch(`${API_URL}/api/account/sync`, {
+----+        method: 'PUT',
+----+        headers: { 'Content-Type': 'application/json' },
+----+        body: JSON.stringify({
+----+          wallet_address: walletAddress,
+----+          balance: accountData.balance,
+----+          holdings: accountData.holdings,
+----+          purchase_info: accountData.purchaseInfo,
+----+          swap_count: accountData.swapCount,
+----+          tx_history: accountData.txHistory,
+----+        }),
+----+      });
+----+      return await response.json();
+----+    } else {
+----+      // Create or get account
+----+      const response = await fetch(`${API_URL}/api/account/create`, {
+----+        method: 'POST',
+----+        headers: { 'Content-Type': 'application/json' },
+----+        body: JSON.stringify({
+----+          wallet_address: walletAddress,
+----+          provider: 'quickstart',
+----+        }),
+----+      });
+----+      return await response.json();
+----+    }
+----+  } catch (error) {
+----+    console.log('[AUTH] Backend sync error (offline mode):', error.message);
+----+    return null;
+----+  }
+----+};
+----+
+----+// Load account from backend
+----+const loadAccountFromBackend = async (walletAddress) => {
+----+  try {
+----+    const response = await fetch(`${API_URL}/api/account/${walletAddress}`);
+----+    if (response.ok) {
+----+      const data = await response.json();
+----+      return data.account;
+----+    }
+----+    return null;
+----+  } catch (error) {
+----+    console.log('[AUTH] Backend load error:', error.message);
+----+    return null;
+----+  }
+----+};
+----+
+---- export default function AuthPage() {
+----   const router = useRouter();
+----   const [loading, setLoading] = useState(false);
+----@@ -51,6 +105,10 @@ export default function AuthPage() {
+----       const wallet = await generateWallet();
+----       console.log('[AUTH] Wallet created:', wallet.address);
+----       
+----+      // Try to sync with backend
+----+      const backendResult = await syncAccountWithBackend(wallet.address);
+----+      console.log('[AUTH] Backend sync result:', backendResult);
+----+      
+----       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
+----       await AsyncStorage.setItem('wallet_address', wallet.address);
+----       await AsyncStorage.setItem('username', 'User');
+----@@ -114,6 +172,10 @@ export default function AuthPage() {
+----               // Create wallet for the user
+----               const wallet = await generateWallet();
+----               
+----+              // Try to sync with backend
+----+              const backendResult = await syncAccountWithBackend(wallet.address);
+----+              console.log('[AUTH] Backend sync result:', backendResult);
+----+              
+----               await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
+----               await AsyncStorage.setItem('wallet_address', wallet.address);
+----               await AsyncStorage.setItem('username', userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'User');
 ----diff --git a/model.patch b/model.patch
-----index 238fada..62a4b5e 100644
+----index a014a49..e69de29 100644
 ------- a/model.patch
 ----+++ b/model.patch
-----@@ -1,18 +0,0 @@
------diff --git a/frontend/app/auth.js b/frontend/app/auth.js
------index a888cc1..70c7f3e 100644
--------- a/frontend/app/auth.js
------+++ b/frontend/app/auth.js
------@@ -196,13 +196,6 @@ const styles = StyleSheet.create({
------     color: '#FFF',
------     letterSpacing: 1,
+----@@ -1,219 +0,0 @@
+-----diff --git a/frontend/app/(tabs)/wallet.js b/frontend/app/(tabs)/wallet.js
+-----index d956645..e51676a 100644
+-------- a/frontend/app/(tabs)/wallet.js
+-----+++ b/frontend/app/(tabs)/wallet.js
+-----@@ -282,7 +282,7 @@ export default function WalletPage() {
+----- 
+-----   const getTokenColor = (symbol) => {
+-----     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
+------    return colors[symbol] || '#00FFF0';
+-----+    return colors[symbol] || '#888';
+-----   };
+----- 
+-----   // Wallet holdings (self-custodial - only shows deposited funds)
+-----@@ -322,7 +322,7 @@ export default function WalletPage() {
+----- 
+-----             {/* Info Banner - Explain self-custodial */}
+-----             <View style={styles.infoCard}>
+------              <MaterialCommunityIcons name="information-outline" size={20} color="#00B8D4" />
+-----+              <MaterialCommunityIcons name="information-outline" size={20} color="#888" />
+-----               <Text style={styles.infoText}>
+-----                 This is your self-custodial wallet. Deposit funds from your exchange to keep them safe. Only you control these assets.
+-----               </Text>
+-----@@ -340,14 +340,14 @@ export default function WalletPage() {
+-----             {/* Wallet Address */}
+-----             <View style={styles.addressCard}>
+-----               <View style={styles.addressHeader}>
+------                <MaterialCommunityIcons name="wallet" size={20} color="#00FFF0" />
+-----+                <MaterialCommunityIcons name="wallet" size={20} color="#888" />
+-----                 <Text style={styles.addressTitle}>Your Wallet Address</Text>
+-----               </View>
+-----               <TouchableOpacity onPress={copyAddress} style={styles.addressBox}>
+-----                 <Text style={styles.addressText} numberOfLines={1}>
+-----                   {walletAddress ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-14)}` : 'Loading...'}
+-----                 </Text>
+------                <MaterialCommunityIcons name="content-copy" size={18} color="#00FFF0" />
+-----+                <MaterialCommunityIcons name="content-copy" size={18} color="#888" />
+-----               </TouchableOpacity>
+-----             </View>
+----- 
+-----@@ -371,7 +371,7 @@ export default function WalletPage() {
+----- 
+-----               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
+-----                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
+------                  <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
+-----+                  <MaterialCommunityIcons name="history" size={24} color="#888" />
+-----                 </View>
+-----                 <Text style={styles.actionText}>History</Text>
+-----                 <Text style={styles.actionSubtext}>View All</Text>
+-----@@ -407,7 +407,7 @@ export default function WalletPage() {
+-----                   <Text style={styles.emptyTitle}>Wallet is Empty</Text>
+-----                   <Text style={styles.emptyText}>Deposit funds from your exchange to keep them safe in your self-custodial wallet</Text>
+-----                   <TouchableOpacity style={styles.emptyButton} onPress={handleDeposit}>
+------                    <LinearGradient colors={['#00FFA3', '#00B8D4']} style={styles.emptyButtonGradient}>
+-----+                    <LinearGradient colors={['#FFF', '#FFF']} style={styles.emptyButtonGradient}>
+-----                       <MaterialCommunityIcons name="bank-transfer-in" size={18} color="#000" />
+-----                       <Text style={styles.emptyButtonText}>Deposit from Exchange</Text>
+-----                     </LinearGradient>
+-----@@ -427,7 +427,7 @@ export default function WalletPage() {
+-----             </TouchableOpacity>
+----- 
+-----             <View style={styles.warningCard}>
+------              <MaterialCommunityIcons name="shield-check" size={20} color="#00FFF0" />
+-----+              <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
+-----               <Text style={styles.warningText}>
+-----                 Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
+-----               </Text>
+-----@@ -476,7 +476,7 @@ export default function WalletPage() {
+-----             <Text style={styles.depositLabel}>Send to this address:</Text>
+-----             <TouchableOpacity onPress={copyAddress} style={styles.depositAddressBox}>
+-----               <Text style={styles.depositAddressText} numberOfLines={2}>{walletAddress}</Text>
+------              <MaterialCommunityIcons name="content-copy" size={20} color="#00FFF0" />
+-----+              <MaterialCommunityIcons name="content-copy" size={20} color="#888" />
+-----             </TouchableOpacity>
+----- 
+-----             <View style={styles.depositInfo}>
+-----@@ -578,7 +578,7 @@ function AssetItem({ symbol, amount, value, onPress }) {
+-----   
+-----   const getTokenColor = (sym) => {
+-----     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
+------    return colors[sym] || '#00FFF0';
+-----+    return colors[sym] || '#888';
+-----   };
+-----   
+-----   return (
+-----@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
+-----     padding: 16,
+-----     marginBottom: 20,
+-----     borderWidth: 1,
+------    borderColor: 'rgba(255, 255, 255, 0.08)',
+-----+    borderColor: '#222',
 -----   },
-------  labsText: {
-------    fontSize: 16,
-------    fontWeight: '300',
-------    color: '#00FFF0',
-------    letterSpacing: 5,
-------    marginTop: 4,
-------  },
------   subtitle: {
------     fontSize: 16,
------     color: 'rgba(255, 255, 255, 0.6)',
+-----   addressHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+-----   addressTitle: { fontSize: 13, color: '#888' },
+-----@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
+-----     flexDirection: 'row',
+-----     alignItems: 'center',
+-----     justifyContent: 'space-between',
+------    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+-----+    backgroundColor: '#0a0a0a',
+-----     padding: 12,
+-----     borderRadius: 8,
+-----   },
+-----@@ -673,11 +673,11 @@ const styles = StyleSheet.create({
+-----     flexDirection: 'row',
+-----     justifyContent: 'space-between',
+-----     alignItems: 'center',
+------    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+-----+    backgroundColor: '#111',
+-----     borderRadius: 14,
+-----     padding: 16,
+-----     borderWidth: 1,
+------    borderColor: 'rgba(255, 255, 255, 0.08)',
+-----+    borderColor: '#222',
+-----   },
+-----   assetLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+-----   assetIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+-----@@ -687,25 +687,25 @@ const styles = StyleSheet.create({
+-----   assetRight: { alignItems: 'flex-end' },
+-----   assetBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
+-----   assetValue: { fontSize: 12, color: '#888', marginTop: 2 },
+------  emptyState: { alignItems: 'center', padding: 32 },
+-----+  emptyState: { alignItems: 'center', padding: 32, backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: '#222' },
+-----   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#888', marginTop: 12 },
+-----   emptyText: { fontSize: 14, color: '#666', marginTop: 8, textAlign: 'center', lineHeight: 20 },
+------  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
+------  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+-----+  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFF' },
+-----+  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFF' },
+-----   emptyButtonText: { fontSize: 16, fontWeight: '700', color: '#000' },
+-----   // Info card
+-----   infoCard: {
+-----     flexDirection: 'row',
+-----     alignItems: 'flex-start',
+------    backgroundColor: 'rgba(0, 184, 212, 0.1)',
+-----+    backgroundColor: '#111',
+-----     padding: 14,
+-----     borderRadius: 12,
+-----     marginBottom: 16,
+-----     gap: 10,
+-----     borderWidth: 1,
+------    borderColor: 'rgba(0, 184, 212, 0.2)',
+-----+    borderColor: '#222',
+-----   },
+------  infoText: { flex: 1, fontSize: 13, color: '#00B8D4', lineHeight: 18 },
+-----+  infoText: { flex: 1, fontSize: 13, color: '#888', lineHeight: 18 },
+-----   // On-chain logo
+-----   onChainLogo: { width: 24, height: 24, borderRadius: 12 },
+-----   // Asset logo styles
+-----@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
+-----     height: 44,
+-----     borderRadius: 22,
+-----     overflow: 'hidden',
+------    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+-----+    backgroundColor: '#1a1a1a',
+-----   },
+-----   assetLogo: {
+-----     width: 44,
+-----@@ -734,19 +734,19 @@ const styles = StyleSheet.create({
+-----     flexDirection: 'row',
+-----     justifyContent: 'space-between',
+-----     alignItems: 'center',
+------    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+-----+    backgroundColor: '#111',
+-----     borderRadius: 12,
+-----     padding: 16,
+-----     marginBottom: 16,
+-----     borderWidth: 1,
+------    borderColor: 'rgba(255, 255, 255, 0.08)',
+-----+    borderColor: '#222',
+-----   },
+-----   securityLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+-----   securityText: { fontSize: 15, color: '#FFF' },
+-----   warningCard: {
+-----     flexDirection: 'row',
+-----     alignItems: 'center',
+------    backgroundColor: 'rgba(0, 255, 240, 0.05)',
+-----+    backgroundColor: '#111',
+-----     padding: 16,
+-----     borderRadius: 12,
+-----     gap: 12,
+-----@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
+-----     borderRadius: 12,
+-----     justifyContent: 'center',
+-----   },
+------  maxBtnText: { color: '#00FFF0', fontWeight: '700' },
+-----+  maxBtnText: { color: '#888', fontWeight: '700' },
+-----   feeInfo: {
+-----     flexDirection: 'row',
+-----     justifyContent: 'space-between',
+-----@@ -862,5 +862,5 @@ const styles = StyleSheet.create({
+-----     alignItems: 'center',
+-----     padding: 12,
+-----   },
+------  faucetBtnText: { color: '#00FFF0', fontSize: 14, fontWeight: '600' },
+-----+  faucetBtnText: { color: '#888', fontSize: 14, fontWeight: '600' },
+----- });
+-----diff --git a/model.patch b/model.patch
+-----index 238fada..62a4b5e 100644
+-------- a/model.patch
+-----+++ b/model.patch
+-----@@ -1,18 +0,0 @@
+------diff --git a/frontend/app/auth.js b/frontend/app/auth.js
+------index a888cc1..70c7f3e 100644
+--------- a/frontend/app/auth.js
+------+++ b/frontend/app/auth.js
+------@@ -196,13 +196,6 @@ const styles = StyleSheet.create({
+------     color: '#FFF',
+------     letterSpacing: 1,
+------   },
+-------  labsText: {
+-------    fontSize: 16,
+-------    fontWeight: '300',
+-------    color: '#00FFF0',
+-------    letterSpacing: 5,
+-------    marginTop: 4,
+-------  },
+------   subtitle: {
+------     fontSize: 16,
+------     color: 'rgba(255, 255, 255, 0.6)',
+--diff --git a/test_result.md b/test_result.md
+--index 187cba4..9aebcc0 100644
+----- a/test_result.md
+--+++ b/test_result.md
+--@@ -100,4 +100,111 @@
+-- 
+-- #====================================================================================================
+-- # Testing Data - Main Agent and testing sub agent both should log testing data below this section
+---#====================================================================================================
+--\ No newline at end of file
+--+#====================================================================================================
+--+
+--+user_problem_statement: "Test the JASPR crypto wallet backend API thoroughly"
+--+
+--+backend:
+--+  - task: "Health Check Endpoint"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "high"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "GET /api/health endpoint working correctly. Returns MongoDB connection status as expected. Response: {'status': 'healthy', 'database': 'mongodb', 'connected': True}"
+--+
+--+  - task: "Account Creation API"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "high"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "POST /api/account/create endpoint working correctly. Successfully creates new accounts and handles existing accounts. Returns proper account data with $10,000 demo balance for new accounts."
+--+
+--+  - task: "Get Account API"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "high"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "GET /api/account/{wallet_address} endpoint working correctly. Successfully retrieves account data by wallet address and returns proper 404 for invalid addresses."
+--+
+--+  - task: "Account Sync API"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "high"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "PUT /api/account/sync endpoint working correctly. Successfully updates account balance, holdings, purchase_info, swap_count, and tx_history. Properly handles invalid wallet addresses with 404 response."
+--+
+--+  - task: "Root Endpoint"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "medium"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "Root endpoint (/) serves frontend HTML correctly. Backend API endpoints are properly prefixed with /api/. Architecture is correct with frontend at root and API at /api/*"
+--+
+--+  - task: "Error Handling"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "high"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "Error handling working correctly. Invalid wallet addresses return proper 404 responses. All endpoints handle exceptions appropriately."
+--+
+--+  - task: "Additional Endpoints"
+--+    implemented: true
+--+    working: true
+--+    file: "backend/server.py"
+--+    stuck_count: 0
+--+    priority: "low"
+--+    needs_retesting: false
+--+    status_history:
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "Additional endpoints tested: /api/accounts/recent works correctly (returns recent accounts). Note: /health endpoint returns 404 (only /api/health works)."
+--+
+--+frontend:
+--+  # Frontend testing not performed as per instructions
+--+
+--+metadata:
+--+  created_by: "testing_agent"
+--+  version: "1.0"
+--+  test_sequence: 1
+--+  run_ui: false
+--+
+--+test_plan:
+--+  current_focus:
+--+    - "All backend API endpoints tested and working"
+--+  stuck_tasks: []
+--+  test_all: true
+--+  test_priority: "high_first"
+--+
+--+agent_communication:
+--+    - agent: "testing"
+--+      message: "Comprehensive backend API testing completed successfully. All 7 core endpoints tested with 100% pass rate. JASPR crypto wallet backend is fully functional with proper MongoDB integration, account management, error handling, and CORS configuration. All endpoints respond correctly to valid and invalid requests."
+--\ No newline at end of file
 -diff --git a/test_result.md b/test_result.md
--index 187cba4..9aebcc0 100644
+-index 9aebcc0..cb25915 100644
 ---- a/test_result.md
 -+++ b/test_result.md
--@@ -100,4 +100,111 @@
+-@@ -194,17 +194,25 @@ frontend:
 - 
-- #====================================================================================================
-- # Testing Data - Main Agent and testing sub agent both should log testing data below this section
---#====================================================================================================
+- metadata:
+-   created_by: "testing_agent"
+--  version: "1.0"
+--  test_sequence: 1
+--  run_ui: false
+-+  version: "1.1"
+-+  test_sequence: 2
+-+  run_ui: true
+- 
+- test_plan:
+-   current_focus:
+--    - "All backend API endpoints tested and working"
+-+    - "Landing Page"
+-+    - "Auth Page"
+-+    - "Home Page"
+-+    - "Markets Page"
+-+    - "Tab Navigation"
+-   stuck_tasks: []
+-   test_all: true
+-   test_priority: "high_first"
+- 
+- agent_communication:
+-     - agent: "testing"
+--      message: "Comprehensive backend API testing completed successfully. All 7 core endpoints tested with 100% pass rate. JASPR crypto wallet backend is fully functional with proper MongoDB integration, account management, error handling, and CORS configuration. All endpoints respond correctly to valid and invalid requests."
 -\ No newline at end of file
--+#====================================================================================================
--+
--+user_problem_statement: "Test the JASPR crypto wallet backend API thoroughly"
--+
--+backend:
--+  - task: "Health Check Endpoint"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "high"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "GET /api/health endpoint working correctly. Returns MongoDB connection status as expected. Response: {'status': 'healthy', 'database': 'mongodb', 'connected': True}"
--+
--+  - task: "Account Creation API"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "high"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "POST /api/account/create endpoint working correctly. Successfully creates new accounts and handles existing accounts. Returns proper account data with $10,000 demo balance for new accounts."
--+
--+  - task: "Get Account API"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "high"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "GET /api/account/{wallet_address} endpoint working correctly. Successfully retrieves account data by wallet address and returns proper 404 for invalid addresses."
--+
--+  - task: "Account Sync API"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "high"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "PUT /api/account/sync endpoint working correctly. Successfully updates account balance, holdings, purchase_info, swap_count, and tx_history. Properly handles invalid wallet addresses with 404 response."
--+
--+  - task: "Root Endpoint"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "medium"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "Root endpoint (/) serves frontend HTML correctly. Backend API endpoints are properly prefixed with /api/. Architecture is correct with frontend at root and API at /api/*"
--+
--+  - task: "Error Handling"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "high"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "Error handling working correctly. Invalid wallet addresses return proper 404 responses. All endpoints handle exceptions appropriately."
--+
--+  - task: "Additional Endpoints"
--+    implemented: true
--+    working: true
--+    file: "backend/server.py"
--+    stuck_count: 0
--+    priority: "low"
--+    needs_retesting: false
--+    status_history:
--+        - working: true
--+          agent: "testing"
--+          comment: "Additional endpoints tested: /api/accounts/recent works correctly (returns recent accounts). Note: /health endpoint returns 404 (only /api/health works)."
--+
--+frontend:
--+  # Frontend testing not performed as per instructions
--+
--+metadata:
--+  created_by: "testing_agent"
--+  version: "1.0"
--+  test_sequence: 1
--+  run_ui: false
--+
--+test_plan:
--+  current_focus:
--+    - "All backend API endpoints tested and working"
--+  stuck_tasks: []
--+  test_all: true
--+  test_priority: "high_first"
--+
--+agent_communication:
--+    - agent: "testing"
 -+      message: "Comprehensive backend API testing completed successfully. All 7 core endpoints tested with 100% pass rate. JASPR crypto wallet backend is fully functional with proper MongoDB integration, account management, error handling, and CORS configuration. All endpoints respond correctly to valid and invalid requests."
+-+    - agent: "testing"
+-+      message: "Starting comprehensive frontend mobile testing for JASPR crypto wallet app. Testing critical flows: Landing page, Auth flow, Home page functionality, Markets page with token list, and tab navigation. Testing in mobile dimensions (390x844) as requested."
+-+    - agent: "testing"
+-+      message: "🎉 COMPREHENSIVE MOBILE TESTING COMPLETED! ALL CRITICAL FLOWS WORKING: ✅ Landing page perfect (Jaspr Labs title, 3 feature cards, Get Started button) ✅ Auth flow works (Quick Start creates account, navigates to home) ✅ Home page excellent ($10,000 portfolio, USDC balance, Trade Rewards banner) ✅ Markets page perfect (25+ tokens with real prices, search works) ✅ Trade screen outstanding (BTC $96,584 price, candlestick chart, timeframe buttons, Buy/Sell toggle) ✅ All 4 tabs work (Home, Trade, Swap, Wallet) ✅ Mobile responsive (390x844) ✅ No crashes or major bugs found!"
 -\ No newline at end of file
-diff --git a/test_result.md b/test_result.md
-index 9aebcc0..cb25915 100644
---- a/test_result.md
-+++ b/test_result.md
-@@ -194,17 +194,25 @@ frontend:
- 
- metadata:
-   created_by: "testing_agent"
--  version: "1.0"
--  test_sequence: 1
--  run_ui: false
-+  version: "1.1"
-+  test_sequence: 2
-+  run_ui: true
- 
- test_plan:
-   current_focus:
--    - "All backend API endpoints tested and working"
-+    - "Landing Page"
-+    - "Auth Page"
-+    - "Home Page"
-+    - "Markets Page"
-+    - "Tab Navigation"
-   stuck_tasks: []
-   test_all: true
-   test_priority: "high_first"
- 
- agent_communication:
-     - agent: "testing"
--      message: "Comprehensive backend API testing completed successfully. All 7 core endpoints tested with 100% pass rate. JASPR crypto wallet backend is fully functional with proper MongoDB integration, account management, error handling, and CORS configuration. All endpoints respond correctly to valid and invalid requests."
-\ No newline at end of file
-+      message: "Comprehensive backend API testing completed successfully. All 7 core endpoints tested with 100% pass rate. JASPR crypto wallet backend is fully functional with proper MongoDB integration, account management, error handling, and CORS configuration. All endpoints respond correctly to valid and invalid requests."
-+    - agent: "testing"
-+      message: "Starting comprehensive frontend mobile testing for JASPR crypto wallet app. Testing critical flows: Landing page, Auth flow, Home page functionality, Markets page with token list, and tab navigation. Testing in mobile dimensions (390x844) as requested."
-+    - agent: "testing"
-+      message: "🎉 COMPREHENSIVE MOBILE TESTING COMPLETED! ALL CRITICAL FLOWS WORKING: ✅ Landing page perfect (Jaspr Labs title, 3 feature cards, Get Started button) ✅ Auth flow works (Quick Start creates account, navigates to home) ✅ Home page excellent ($10,000 portfolio, USDC balance, Trade Rewards banner) ✅ Markets page perfect (25+ tokens with real prices, search works) ✅ Trade screen outstanding (BTC $96,584 price, candlestick chart, timeframe buttons, Buy/Sell toggle) ✅ All 4 tabs work (Home, Trade, Swap, Wallet) ✅ Mobile responsive (390x844) ✅ No crashes or major bugs found!"
-\ No newline at end of file
