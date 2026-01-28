@@ -371,7 +371,7 @@ export default function WalletPage() {
 
               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
-                  <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
+                  <MaterialCommunityIcons name="history" size={24} color="#888" />
                 </View>
                 <Text style={styles.actionText}>History</Text>
                 <Text style={styles.actionSubtext}>View All</Text>
