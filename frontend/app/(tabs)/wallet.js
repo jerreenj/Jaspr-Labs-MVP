@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#1a1a1a',
   },
   assetLogo: {
     width: 44,
