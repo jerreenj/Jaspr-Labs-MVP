@@ -213,7 +213,13 @@ export default function WalletPage() {
           [{ text: 'View History', onPress: () => router.push('/(tabs)/history') }, { text: 'Done' }]
         );
       } else {
-        // Real ETH withdrawal
+        // Real ETH withdrawal (requires ethers library)
+        if (!ethers) {
+          Alert.alert('Error', 'On-chain transactions not available in this build');
+          setSending(false);
+          return;
+        }
+        
         if (parseFloat(onChainBalance) < amount) {
           Alert.alert('Error', 'Insufficient on-chain ETH balance');
           setSending(false);
