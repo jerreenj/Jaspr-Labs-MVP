@@ -697,15 +697,15 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(0, 184, 212, 0.1)',
+    backgroundColor: '#111',
     padding: 14,
     borderRadius: 12,
     marginBottom: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 212, 0.2)',
+    borderColor: '#222',
   },
-  infoText: { flex: 1, fontSize: 13, color: '#00B8D4', lineHeight: 18 },
+  infoText: { flex: 1, fontSize: 13, color: '#888', lineHeight: 18 },
   // On-chain logo
   onChainLogo: { width: 24, height: 24, borderRadius: 12 },
   // Asset logo styles
