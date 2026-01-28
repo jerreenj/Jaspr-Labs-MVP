@@ -15,24 +15,30 @@ export default function LandingPage() {
         <Text style={styles.brandSub}>Labs</Text>
       </View>
 
-      {/* Features - 3 cards */}
+      {/* Features - 3 compact cards */}
       <View style={styles.featuresGrid}>
         <View style={styles.featureCard}>
-          <MaterialCommunityIcons name="chart-line" size={36} color="#00C853" />
-          <Text style={styles.featureTitle}>Real-Time Trading</Text>
-          <Text style={styles.featureDesc}>Professional charts with live price updates and instant order execution</Text>
+          <MaterialCommunityIcons name="chart-line" size={24} color="#00C853" />
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Real-Time Trading</Text>
+            <Text style={styles.featureDesc}>Live charts & instant execution</Text>
+          </View>
         </View>
         
         <View style={styles.featureCard}>
-          <MaterialCommunityIcons name="shield-lock" size={36} color="#FFF" />
-          <Text style={styles.featureTitle}>Self-Custody</Text>
-          <Text style={styles.featureDesc}>Your keys, your crypto. Full control over your digital assets</Text>
+          <MaterialCommunityIcons name="shield-lock" size={24} color="#FFF" />
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Self-Custody</Text>
+            <Text style={styles.featureDesc}>Your keys, your crypto</Text>
+          </View>
         </View>
         
         <View style={styles.featureCard}>
-          <MaterialCommunityIcons name="swap-horizontal" size={36} color="#FFF" />
-          <Text style={styles.featureTitle}>Instant Swaps</Text>
-          <Text style={styles.featureDesc}>Trade between 25+ tokens with minimal fees and zero slippage</Text>
+          <MaterialCommunityIcons name="swap-horizontal" size={24} color="#FFF" />
+          <View style={styles.featureText}>
+            <Text style={styles.featureTitle}>Instant Swaps</Text>
+            <Text style={styles.featureDesc}>25+ tokens, minimal fees</Text>
+          </View>
         </View>
       </View>
 
@@ -58,60 +64,63 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#000',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 30,
+    paddingHorizontal: 20,
+    paddingTop: 80,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   brand: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: '800',
     color: '#FFF',
     fontFamily: 'Inter_700Bold',
   },
   brandSub: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: '300',
     color: '#666',
-    fontFamily: 'Inter_400Regular',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   featuresGrid: {
     flex: 1,
     justifyContent: 'center',
-    gap: 16,
+    gap: 12,
   },
   featureCard: {
     backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#222',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  featureText: {
+    flex: 1,
   },
   featureTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFF',
-    marginTop: 14,
     fontFamily: 'Inter_600SemiBold',
   },
   featureDesc: {
-    fontSize: 15,
-    color: '#888',
-    marginTop: 8,
-    lineHeight: 22,
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
   },
   bottom: {
-    marginTop: 24,
+    marginTop: 30,
   },
   button: {
     backgroundColor: '#FFF',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -120,19 +129,19 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#000',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     fontFamily: 'Inter_700Bold',
   },
   bonus: {
     color: '#888',
-    fontSize: 13,
+    fontSize: 12,
     textAlign: 'center',
     marginTop: 14,
   },
   network: {
     color: '#444',
-    fontSize: 11,
+    fontSize: 10,
     textAlign: 'center',
     marginTop: 6,
   },
