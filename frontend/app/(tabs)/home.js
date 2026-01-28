@@ -1,9 +1,38 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Token logos from CoinGecko
+const TOKEN_LOGOS = {
+  BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+  ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+  SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+  BNB: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png',
+  XRP: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png',
+  ADA: 'https://assets.coingecko.com/coins/images/975/small/cardano.png',
+  DOGE: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png',
+  AVAX: 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
+  TON: 'https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png',
+  MATIC: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+  DOT: 'https://assets.coingecko.com/coins/images/12171/small/polkadot.png',
+  LINK: 'https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png',
+  UNI: 'https://assets.coingecko.com/coins/images/12504/small/uniswap-logo.png',
+  LTC: 'https://assets.coingecko.com/coins/images/2/small/litecoin.png',
+  SHIB: 'https://assets.coingecko.com/coins/images/11939/small/shiba.png',
+  TRX: 'https://assets.coingecko.com/coins/images/1094/small/tron-logo.png',
+  NEAR: 'https://assets.coingecko.com/coins/images/10365/small/near.jpg',
+  APT: 'https://assets.coingecko.com/coins/images/26455/small/aptos_round.png',
+  PEPE: 'https://assets.coingecko.com/coins/images/29850/small/pepe-token.jpeg',
+  ARB: 'https://assets.coingecko.com/coins/images/16547/small/arb.jpg',
+  USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
+  USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+  DAI: 'https://assets.coingecko.com/coins/images/9956/small/Badge_Dai.png',
+  WBTC: 'https://assets.coingecko.com/coins/images/7598/small/wrapped_bitcoin_wbtc.png',
+  ICP: 'https://assets.coingecko.com/coins/images/14495/small/Internet_Computer_logo.png',
+};
 
 export default function HomePage() {
   const router = useRouter();
