@@ -1,8 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const { width } = Dimensions.get('window');
 
 export default function LandingPage() {
   const router = useRouter();
@@ -10,14 +8,9 @@ export default function LandingPage() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {/* Hero Section */}
-        <View style={styles.hero}>
-          <Text style={styles.brand}>JASPR</Text>
-          <Text style={styles.tagline}>Trade Crypto Like a Pro</Text>
-          <Text style={styles.description}>
-            The power of a centralized exchange with the freedom of self-custody. 
-            Your keys, your crypto, your control.
-          </Text>
+        {/* Brand - Centered */}
+        <View style={styles.brandSection}>
+          <Text style={styles.brand}>Jaspr Labs</Text>
         </View>
 
         {/* Features */}
@@ -89,29 +82,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  hero: {
-    marginBottom: 40,
+  brandSection: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
   brand: {
-    fontSize: 52,
+    fontSize: 48,
     fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 4,
+    letterSpacing: 2,
     fontFamily: 'Inter_700Bold',
-  },
-  tagline: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFF',
-    marginTop: 8,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  description: {
-    fontSize: 17,
-    color: '#888',
-    marginTop: 16,
-    lineHeight: 26,
-    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
   },
   features: {
     marginBottom: 40,
