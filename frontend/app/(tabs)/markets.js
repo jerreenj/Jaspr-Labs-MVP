@@ -79,10 +79,16 @@ export default function MarketsPage() {
     try {
       setLoading(true);
       const ids = TOKENS.map(t => t.coingeckoId).join(',');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
       const response = await fetch(
         `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
-        { signal: AbortSignal.timeout(8000) }
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) throw new Error('API error');
       
