@@ -357,7 +357,7 @@ export default function HomePage() {
 }
 
 // HoldingItem component with real token logos
-function HoldingItem({ symbol, amount, value, price, onPress }) {
+function HoldingItem({ symbol, amount, value, price, purchaseCost, onPress }) {
   const [imageError, setImageError] = useState(false);
   const logo = TOKEN_LOGOS[symbol];
   
@@ -371,8 +371,12 @@ function HoldingItem({ symbol, amount, value, price, onPress }) {
       ARB: '#28A0F0', USDT: '#50AF95', DAI: '#F5AC37', WBTC: '#F7931A',
       ICP: '#292A2E',
     };
-    return colors[sym] || '#00FFF0';
+    return colors[sym] || '#FFF';
   };
+  
+  // Calculate profit/loss
+  const pnl = purchaseCost ? value - purchaseCost : 0;
+  const pnlPercent = purchaseCost ? ((value - purchaseCost) / purchaseCost) * 100 : 0;
   
   return (
     <TouchableOpacity 
@@ -399,13 +403,23 @@ function HoldingItem({ symbol, amount, value, price, onPress }) {
         <View>
           <Text style={styles.holdingSymbol}>{symbol}</Text>
           <Text style={styles.holdingAmount}>
-            {symbol === 'USDC' ? amount.toFixed(2) : amount.toFixed(8)}
+            {symbol === 'USDC' ? amount.toFixed(2) : amount.toFixed(6)}
           </Text>
         </View>
       </View>
       <View style={styles.holdingRight}>
         <Text style={styles.holdingValue}>${value.toFixed(2)}</Text>
-        {symbol !== 'USDC' && (
+        {symbol !== 'USDC' && purchaseCost > 0 && (
+          <View style={styles.pnlRow}>
+            <Text style={[styles.holdingPnl, pnl >= 0 ? styles.pnlPositive : styles.pnlNegative]}>
+              {pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+            </Text>
+            <Text style={styles.holdingCost}>
+              Cost: ${purchaseCost.toFixed(2)}
+            </Text>
+          </View>
+        )}
+        {symbol !== 'USDC' && !purchaseCost && (
           <Text style={styles.holdingPrice}>
             @${price?.toLocaleString() || '0'}
           </Text>
