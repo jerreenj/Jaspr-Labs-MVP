@@ -361,6 +361,65 @@ export default function HomePage() {
   );
 }
 
+// HoldingItem component with real token logos
+function HoldingItem({ symbol, amount, value, price, onPress }) {
+  const [imageError, setImageError] = useState(false);
+  const logo = TOKEN_LOGOS[symbol];
+  
+  const getTokenColor = (sym) => {
+    const colors = {
+      USDC: '#2775CA', BTC: '#F7931A', ETH: '#627EEA', SOL: '#00FFA3',
+      BNB: '#F3BA2F', XRP: '#23292F', ADA: '#0033AD', DOGE: '#C3A634',
+      AVAX: '#E84142', TON: '#0098EA', MATIC: '#8247E5', DOT: '#E6007A',
+      LINK: '#2A5ADA', UNI: '#FF007A', LTC: '#345D9D', SHIB: '#FFA409',
+      TRX: '#FF0013', NEAR: '#00EC97', APT: '#4CC2A4', PEPE: '#3B7A57',
+      ARB: '#28A0F0', USDT: '#50AF95', DAI: '#F5AC37', WBTC: '#F7931A',
+      ICP: '#292A2E',
+    };
+    return colors[sym] || '#00FFF0';
+  };
+  
+  return (
+    <TouchableOpacity 
+      style={styles.holdingItem}
+      onPress={onPress}
+      activeOpacity={symbol === 'USDC' ? 1 : 0.7}
+    >
+      <View style={styles.holdingLeft}>
+        <View style={styles.tokenLogoContainer}>
+          {logo && !imageError ? (
+            <Image 
+              source={{ uri: logo }} 
+              style={styles.tokenLogo}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <View style={[styles.tokenIconFallback, { backgroundColor: `${getTokenColor(symbol)}25` }]}>
+              <Text style={[styles.tokenIconText, { color: getTokenColor(symbol) }]}>
+                {symbol[0]}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View>
+          <Text style={styles.holdingSymbol}>{symbol}</Text>
+          <Text style={styles.holdingAmount}>
+            {symbol === 'USDC' ? amount.toFixed(2) : amount.toFixed(8)}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.holdingRight}>
+        <Text style={styles.holdingValue}>${value.toFixed(2)}</Text>
+        {symbol !== 'USDC' && (
+          <Text style={styles.holdingPrice}>
+            @${price?.toLocaleString() || '0'}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a1a' },
   gradient: { flex: 1 },
