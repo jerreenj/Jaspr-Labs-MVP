@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -6,7 +6,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Brand - Centered */}
         <View style={styles.brandSection}>
@@ -18,14 +18,14 @@ export default function LandingPage() {
           <View style={styles.featureRow}>
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <MaterialCommunityIcons name="chart-line" size={28} color="#00C853" />
+                <MaterialCommunityIcons name="chart-line" size={26} color="#00C853" />
               </View>
               <Text style={styles.featureTitle}>Real-Time Trading</Text>
               <Text style={styles.featureDesc}>Live charts & instant execution</Text>
             </View>
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <MaterialCommunityIcons name="shield-lock" size={28} color="#FFF" />
+                <MaterialCommunityIcons name="shield-lock" size={26} color="#FFF" />
               </View>
               <Text style={styles.featureTitle}>Self-Custody</Text>
               <Text style={styles.featureDesc}>You control your private keys</Text>
@@ -34,14 +34,14 @@ export default function LandingPage() {
           <View style={styles.featureRow}>
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <MaterialCommunityIcons name="swap-horizontal" size={28} color="#FFF" />
+                <MaterialCommunityIcons name="swap-horizontal" size={26} color="#FFF" />
               </View>
               <Text style={styles.featureTitle}>Instant Swaps</Text>
               <Text style={styles.featureDesc}>Trade 25+ tokens seamlessly</Text>
             </View>
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <MaterialCommunityIcons name="cash-multiple" size={28} color="#FFD700" />
+                <MaterialCommunityIcons name="cash-multiple" size={26} color="#FFD700" />
               </View>
               <Text style={styles.featureTitle}>Low Fees</Text>
               <Text style={styles.featureDesc}>0.3% per trade, no hidden costs</Text>
@@ -64,11 +64,11 @@ export default function LandingPage() {
           <MaterialCommunityIcons name="check-decagram" size={18} color="#00C853" />
           <Text style={styles.trustText}>$10,000 Demo Balance • No Sign-up Required</Text>
         </View>
-      </View>
 
-      {/* Footer */}
-      <Text style={styles.footer}>Base Sepolia Testnet</Text>
-    </View>
+        {/* Footer */}
+        <Text style={styles.footer}>Base Sepolia Testnet</Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -80,55 +80,55 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   brandSection: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   brand: {
-    fontSize: 48,
+    fontSize: 42,
     fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 2,
+    letterSpacing: 1,
     fontFamily: 'Inter_700Bold',
     textAlign: 'center',
   },
   features: {
-    marginBottom: 40,
+    marginBottom: 32,
   },
   featureRow: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 12,
     gap: 12,
   },
   feature: {
     flex: 1,
     backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#222',
   },
   featureIcon: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   featureTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFF',
     marginBottom: 4,
     fontFamily: 'Inter_600SemiBold',
   },
   featureDesc: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
     fontFamily: 'Inter_400Regular',
   },
   button: {
     backgroundColor: '#FFF',
     borderRadius: 14,
-    paddingVertical: 18,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#000',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     fontFamily: 'Inter_700Bold',
   },
@@ -144,19 +144,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 16,
     gap: 8,
   },
   trustText: {
     color: '#666',
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Inter_400Regular',
   },
   footer: {
     color: '#333',
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    paddingBottom: 40,
+    marginTop: 24,
     fontFamily: 'Inter_400Regular',
   },
 });
