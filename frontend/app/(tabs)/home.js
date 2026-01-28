@@ -177,17 +177,14 @@ export default function HomePage() {
 
             {/* Portfolio Value Card */}
             <View style={styles.portfolioCard}>
-              <LinearGradient
-                colors={['rgba(0, 255, 240, 0.1)', 'rgba(0, 184, 212, 0.05)']}
-                style={styles.portfolioGradient}
-              >
+              <View style={styles.portfolioGradient}>
                 <Text style={styles.portfolioLabel}>Total Portfolio</Text>
                 <Text style={styles.portfolioValue}>${formatValue(totalValue)}</Text>
                 <View style={styles.networkRow}>
                   <View style={styles.networkDot} />
                   <Text style={styles.networkText}>Demo Account • Base Sepolia</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </View>
 
             {/* Trade Rewards Banner */}
