@@ -300,7 +300,6 @@ export default function HomePage() {
             </View>
           </View>
         </ScrollView>
-      </LinearGradient>
 
       {/* Menu Modal */}
       <Modal visible={showMenu} transparent animationType="fade">
