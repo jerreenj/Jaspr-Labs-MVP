@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   gradient: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: 20, paddingTop: 50, paddingBottom: 100, backgroundColor: '#000' },
+  content: { padding: 20, paddingTop: 50, paddingBottom: 20, backgroundColor: '#000' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
