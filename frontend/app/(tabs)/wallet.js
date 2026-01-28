@@ -476,7 +476,7 @@ export default function WalletPage() {
             <Text style={styles.depositLabel}>Send to this address:</Text>
             <TouchableOpacity onPress={copyAddress} style={styles.depositAddressBox}>
               <Text style={styles.depositAddressText} numberOfLines={2}>{walletAddress}</Text>
-              <MaterialCommunityIcons name="content-copy" size={20} color="#00FFF0" />
+              <MaterialCommunityIcons name="content-copy" size={20} color="#888" />
             </TouchableOpacity>
 
             <View style={styles.depositInfo}>
