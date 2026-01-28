@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#222',
   },
   addressHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   addressTitle: { fontSize: 13, color: '#888' },
