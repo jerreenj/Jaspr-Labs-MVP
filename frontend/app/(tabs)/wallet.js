@@ -569,6 +569,45 @@ export default function WalletPage() {
   );
 }
 
+// AssetItem component with real token logos
+function AssetItem({ symbol, amount, value, onPress }) {
+  const [imageError, setImageError] = useState(false);
+  const logo = TOKEN_LOGOS[symbol];
+  
+  const getTokenColor = (sym) => {
+    const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
+    return colors[sym] || '#00FFF0';
+  };
+  
+  return (
+    <TouchableOpacity style={styles.assetItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.assetLeft}>
+        <View style={styles.assetLogoContainer}>
+          {logo && !imageError ? (
+            <Image 
+              source={{ uri: logo }} 
+              style={styles.assetLogo}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <View style={[styles.assetIconFallback, { backgroundColor: `${getTokenColor(symbol)}25` }]}>
+              <Text style={[styles.assetIconText, { color: getTokenColor(symbol) }]}>{symbol[0]}</Text>
+            </View>
+          )}
+        </View>
+        <View>
+          <Text style={styles.assetSymbol}>{symbol}</Text>
+          <Text style={styles.assetName}>Tap to withdraw</Text>
+        </View>
+      </View>
+      <View style={styles.assetRight}>
+        <Text style={styles.assetBalance}>{amount.toFixed(symbol === 'USDC' ? 2 : 6)}</Text>
+        <Text style={styles.assetValue}>${value.toFixed(2)}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a1a' },
   gradient: { flex: 1 },
