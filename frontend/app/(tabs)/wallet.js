@@ -105,7 +105,9 @@ export default function WalletPage() {
           BTC: data.bitcoin?.usd || 90000,
           SOL: data.solana?.usd || 130,
         });
-      } catch (e) {}
+      } catch (e) {
+        // Use fallback prices
+      }
     } catch (error) {
       console.error('Error loading wallet:', error);
     }
