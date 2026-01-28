@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: '#000',
   },
-  title: { fontSize: 28, fontWeight: '700', color: '#FFF' },
+  title: { fontSize: 28, fontWeight: '700', color: '#FFF', fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 13, color: '#888', marginTop: 4 },
   searchContainer: {
     flexDirection: 'row',
