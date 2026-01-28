@@ -1,7 +1,9 @@
-// Base Sepolia Configuration
-export const BASE_SEPOLIA_CHAIN_ID = 84532;
-export const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
-export const BASE_SEPOLIA_EXPLORER = 'https://sepolia.basescan.org';
+// Base Sepolia Configuration (uses env vars in production)
+import Constants from 'expo-constants';
+
+export const BASE_SEPOLIA_CHAIN_ID = parseInt(process.env.EXPO_PUBLIC_BASE_SEPOLIA_CHAIN_ID || Constants.expoConfig?.extra?.baseSeploliaChainId || '84532');
+export const BASE_SEPOLIA_RPC = process.env.EXPO_PUBLIC_BASE_SEPOLIA_RPC || Constants.expoConfig?.extra?.baseSepoliaRpc || 'https://sepolia.base.org';
+export const BASE_SEPOLIA_EXPLORER = process.env.EXPO_PUBLIC_BASE_EXPLORER || Constants.expoConfig?.extra?.baseExplorer || 'https://sepolia.basescan.org';
 
 // Uniswap V3 on Base Sepolia
 export const UNISWAP_V3_ROUTER = '0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4';
