@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -143,56 +142,54 @@ export default function MarketsPage() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Trade</Text>
-          <Text style={styles.subtitle}>Top 25 cryptocurrencies • Tap to trade</Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.title}>Trade</Text>
+        <Text style={styles.subtitle}>Top 25 cryptocurrencies • Tap to trade</Text>
+      </View>
 
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search tokens..."
-            placeholderTextColor="#666"
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <MaterialCommunityIcons name="close-circle" size={18} color="#666" />
-            </TouchableOpacity>
+      <View style={styles.searchContainer}>
+        <MaterialCommunityIcons name="magnify" size={20} color="#888" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search tokens..."
+          placeholderTextColor="#888"
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <MaterialCommunityIcons name="close-circle" size={18} color="#888" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView 
+        style={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
+        }
+      >
+        <View style={styles.tokenList}>
+          {loading && tokens.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading prices...</Text>
+            </View>
+          ) : filteredTokens.length > 0 ? (
+            filteredTokens.map((token, index) => (
+              <TokenItem 
+                key={index} 
+                token={token} 
+                onPress={() => handleTokenPress(token)}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="magnify" size={48} color="#444" />
+              <Text style={styles.emptyText}>No tokens found</Text>
+            </View>
           )}
         </View>
-
-        <ScrollView 
-          style={styles.scroll}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00FFF0" />
-          }
-        >
-          <View style={styles.tokenList}>
-            {loading && tokens.length === 0 ? (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading prices...</Text>
-              </View>
-            ) : filteredTokens.length > 0 ? (
-              filteredTokens.map((token, index) => (
-                <TokenItem 
-                  key={index} 
-                  token={token} 
-                  onPress={() => handleTokenPress(token)}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="magnify" size={48} color="#444" />
-                <Text style={styles.emptyText}>No tokens found</Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      </LinearGradient>
+      </ScrollView>
     </View>
   );
 }
@@ -254,7 +251,6 @@ function TokenItem({ token, onPress }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  gradient: { flex: 1 },
   header: {
     padding: 20,
     paddingTop: 50,
@@ -266,9 +262,9 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111',
+    backgroundColor: '#1A1A1A',
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: '#333',
     borderRadius: 12,
     paddingHorizontal: 14,
     marginHorizontal: 20,
@@ -277,7 +273,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     padding: 12,
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 15,
   },
   scroll: { flex: 1, backgroundColor: '#000' },
