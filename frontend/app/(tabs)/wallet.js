@@ -454,10 +454,10 @@ export default function WalletPage() {
             </View>
 
             <TouchableOpacity style={styles.metamaskBtn} onPress={openMetaMask}>
-              <LinearGradient colors={['#F6851B', '#E2761B']} style={styles.metamaskBtnGradient}>
+              <View style={[styles.metamaskBtnGradient, { backgroundColor: '#F6851B' }]}>
                 <MaterialCommunityIcons name="fox" size={24} color="#FFF" />
                 <Text style={styles.metamaskBtnText}>Open MetaMask</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <View style={styles.depositDivider}>
