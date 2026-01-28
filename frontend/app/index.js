@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const { height } = Dimensions.get('window');
 
 export default function LandingPage() {
   const router = useRouter();
@@ -8,42 +10,42 @@ export default function LandingPage() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Brand */}
+      
+      {/* Header */}
+      <View style={styles.header}>
         <Text style={styles.brand}>Jaspr Labs</Text>
+        <Text style={styles.tagline}>Your Crypto, Your Control</Text>
+      </View>
 
-        {/* Features */}
-        <View style={styles.features}>
-          <View style={styles.featureRow}>
-            <View style={styles.feature}>
-              <MaterialCommunityIcons name="chart-line" size={22} color="#00C853" />
-              <Text style={styles.featureTitle}>Real-Time Trading</Text>
-              <Text style={styles.featureDesc}>Live charts & execution</Text>
-            </View>
-            <View style={styles.feature}>
-              <MaterialCommunityIcons name="shield-lock" size={22} color="#FFF" />
-              <Text style={styles.featureTitle}>Self-Custody</Text>
-              <Text style={styles.featureDesc}>You control your keys</Text>
-            </View>
-          </View>
-          <View style={styles.featureRow}>
-            <View style={styles.feature}>
-              <MaterialCommunityIcons name="swap-horizontal" size={22} color="#FFF" />
-              <Text style={styles.featureTitle}>Instant Swaps</Text>
-              <Text style={styles.featureDesc}>25+ tokens available</Text>
-            </View>
-            <View style={styles.feature}>
-              <MaterialCommunityIcons name="cash-multiple" size={22} color="#FFD700" />
-              <Text style={styles.featureTitle}>Low Fees</Text>
-              <Text style={styles.featureDesc}>0.3% per trade</Text>
-            </View>
-          </View>
+      {/* Features Grid - Takes up most space */}
+      <View style={styles.featuresGrid}>
+        <View style={styles.featureCard}>
+          <MaterialCommunityIcons name="chart-line" size={32} color="#00C853" />
+          <Text style={styles.featureTitle}>Real-Time Trading</Text>
+          <Text style={styles.featureDesc}>Professional charts with live price updates and instant order execution</Text>
         </View>
+        
+        <View style={styles.featureCard}>
+          <MaterialCommunityIcons name="shield-lock" size={32} color="#FFF" />
+          <Text style={styles.featureTitle}>Self-Custody</Text>
+          <Text style={styles.featureDesc}>Your keys, your crypto. Full control over your digital assets</Text>
+        </View>
+        
+        <View style={styles.featureCard}>
+          <MaterialCommunityIcons name="swap-horizontal" size={32} color="#FFF" />
+          <Text style={styles.featureTitle}>Instant Swaps</Text>
+          <Text style={styles.featureDesc}>Trade between 25+ tokens with minimal fees and zero slippage</Text>
+        </View>
+        
+        <View style={styles.featureCard}>
+          <MaterialCommunityIcons name="wallet" size={32} color="#FFD700" />
+          <Text style={styles.featureTitle}>MetaMask Ready</Text>
+          <Text style={styles.featureDesc}>Connect your existing wallet or create a new one instantly</Text>
+        </View>
+      </View>
 
-        {/* CTA */}
+      {/* Bottom CTA */}
+      <View style={styles.bottom}>
         <TouchableOpacity 
           style={styles.button}
           onPress={() => router.push('/auth')}
@@ -53,13 +55,9 @@ export default function LandingPage() {
           <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
         </TouchableOpacity>
 
-        <View style={styles.trustBadge}>
-          <MaterialCommunityIcons name="check-decagram" size={14} color="#00C853" />
-          <Text style={styles.trustText}>$10,000 Demo • No Sign-up</Text>
-        </View>
-
-        <Text style={styles.footer}>Base Sepolia Testnet</Text>
-      </ScrollView>
+        <Text style={styles.bonus}>🎁 $10,000 Demo Balance • No Sign-up Required</Text>
+        <Text style={styles.network}>Base Sepolia Testnet</Text>
+      </View>
     </View>
   );
 }
@@ -68,53 +66,57 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#000',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 40,
+    paddingTop: 50,
+    paddingBottom: 30,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
   brand: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
     color: '#FFF',
-    textAlign: 'center',
     fontFamily: 'Inter_700Bold',
-    marginBottom: 24,
   },
-  features: {
-    marginBottom: 24,
+  tagline: {
+    fontSize: 16,
+    color: '#888',
+    marginTop: 4,
   },
-  featureRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
-    gap: 10,
-  },
-  feature: {
+  featuresGrid: {
     flex: 1,
+    justifyContent: 'center',
+    gap: 12,
+  },
+  featureCard: {
     backgroundColor: '#111',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#222',
   },
   featureTitle: {
-    fontSize: 13,
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFF',
-    marginTop: 6,
+    marginTop: 12,
     fontFamily: 'Inter_600SemiBold',
   },
   featureDesc: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
+    fontSize: 14,
+    color: '#888',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  bottom: {
+    marginTop: 20,
   },
   button: {
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -122,25 +124,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#000',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     fontFamily: 'Inter_700Bold',
   },
-  trustBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-    gap: 6,
-  },
-  trustText: {
-    color: '#666',
-    fontSize: 12,
-  },
-  footer: {
-    color: '#333',
-    fontSize: 10,
+  bonus: {
+    color: '#888',
+    fontSize: 13,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 14,
+  },
+  network: {
+    color: '#444',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 6,
   },
 });
