@@ -88,10 +88,16 @@ export default function SwapPage() {
     setPriceLoading(true);
     try {
       const ids = ALL_TOKENS.map(t => t.coingeckoId).join(',');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const response = await fetch(
         `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
-        { signal: AbortSignal.timeout(10000) }
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
       const data = await response.json();
       
       const newPrices = { ...DEFAULT_PRICES };
