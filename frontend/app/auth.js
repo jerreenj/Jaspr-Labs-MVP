@@ -156,7 +156,7 @@ export default function AuthPage() {
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.brand}>Jaspr Labs</Text>
+          <Text style={styles.brand}>Jaspr</Text>
         </View>
 
         <View style={styles.buttons}>
