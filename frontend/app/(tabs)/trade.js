@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -7,6 +7,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LineChart } from 'react-native-gifted-charts';
 
 const { width } = Dimensions.get('window');
+
+// Token logos
+const TOKEN_LOGOS = {
+  bitcoin: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+  ethereum: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+  solana: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+  binancecoin: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png',
+  ripple: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png',
+  cardano: 'https://assets.coingecko.com/coins/images/975/small/cardano.png',
+  dogecoin: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png',
+  'avalanche-2': 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
+  'the-open-network': 'https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png',
+  'matic-network': 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+};
 
 export default function TradePage() {
   const router = useRouter();
@@ -23,10 +37,12 @@ export default function TradePage() {
   const [chartLoading, setChartLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('24H');
   const [swapCount, setSwapCount] = useState(0);
+  const [imageError, setImageError] = useState(false);
   
   const coinId = params.coin || 'bitcoin';
   const symbol = params.symbol || 'BTC';
   const name = params.name || 'Bitcoin';
+  const logo = params.logo || TOKEN_LOGOS[coinId] || '';
 
   useEffect(() => {
     loadData();
