@@ -194,13 +194,17 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
-  run_ui: false
+  version: "1.1"
+  test_sequence: 2
+  run_ui: true
 
 test_plan:
   current_focus:
-    - "All backend API endpoints tested and working"
+    - "Landing Page"
+    - "Auth Page"
+    - "Home Page"
+    - "Markets Page"
+    - "Tab Navigation"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -208,3 +212,5 @@ test_plan:
 agent_communication:
     - agent: "testing"
       message: "Comprehensive backend API testing completed successfully. All 7 core endpoints tested with 100% pass rate. JASPR crypto wallet backend is fully functional with proper MongoDB integration, account management, error handling, and CORS configuration. All endpoints respond correctly to valid and invalid requests."
+    - agent: "testing"
+      message: "Starting comprehensive frontend mobile testing for JASPR crypto wallet app. Testing critical flows: Landing page, Auth flow, Home page functionality, Markets page with token list, and tab navigation. Testing in mobile dimensions (390x844) as requested."
