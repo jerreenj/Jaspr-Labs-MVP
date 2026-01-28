@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   warningCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 240, 0.05)',
+    backgroundColor: '#111',
     padding: 16,
     borderRadius: 12,
     gap: 12,
