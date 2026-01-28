@@ -1,10 +1,74 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 
-// Fallback prices in case API fails
+// Real token logos from CoinGecko
+const TOKENS = [
+  { 
+    symbol: 'BTC', 
+    name: 'Bitcoin', 
+    coingeckoId: 'bitcoin',
+    logo: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png'
+  },
+  { 
+    symbol: 'ETH', 
+    name: 'Ethereum', 
+    coingeckoId: 'ethereum',
+    logo: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png'
+  },
+  { 
+    symbol: 'SOL', 
+    name: 'Solana', 
+    coingeckoId: 'solana',
+    logo: 'https://assets.coingecko.com/coins/images/4128/small/solana.png'
+  },
+  { 
+    symbol: 'BNB', 
+    name: 'BNB', 
+    coingeckoId: 'binancecoin',
+    logo: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png'
+  },
+  { 
+    symbol: 'XRP', 
+    name: 'XRP', 
+    coingeckoId: 'ripple',
+    logo: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png'
+  },
+  { 
+    symbol: 'ADA', 
+    name: 'Cardano', 
+    coingeckoId: 'cardano',
+    logo: 'https://assets.coingecko.com/coins/images/975/small/cardano.png'
+  },
+  { 
+    symbol: 'DOGE', 
+    name: 'Dogecoin', 
+    coingeckoId: 'dogecoin',
+    logo: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png'
+  },
+  { 
+    symbol: 'AVAX', 
+    name: 'Avalanche', 
+    coingeckoId: 'avalanche-2',
+    logo: 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png'
+  },
+  { 
+    symbol: 'TON', 
+    name: 'Toncoin', 
+    coingeckoId: 'the-open-network',
+    logo: 'https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png'
+  },
+  { 
+    symbol: 'MATIC', 
+    name: 'Polygon', 
+    coingeckoId: 'matic-network',
+    logo: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png'
+  },
+];
+
+// Fallback prices
 const FALLBACK_PRICES = {
   bitcoin: { usd: 89500, usd_24h_change: 2.5 },
   ethereum: { usd: 2950, usd_24h_change: 1.8 },
@@ -16,21 +80,7 @@ const FALLBACK_PRICES = {
   'avalanche-2': { usd: 34.5, usd_24h_change: 2.1 },
   'the-open-network': { usd: 5.2, usd_24h_change: 0.8 },
   'matic-network': { usd: 0.45, usd_24h_change: -0.3 },
-  'usd-coin': { usd: 1, usd_24h_change: 0 },
 };
-
-const TOKENS = [
-  { symbol: 'BTC', name: 'Bitcoin', coingeckoId: 'bitcoin', color: '#F7931A' },
-  { symbol: 'ETH', name: 'Ethereum', coingeckoId: 'ethereum', color: '#627EEA' },
-  { symbol: 'SOL', name: 'Solana', coingeckoId: 'solana', color: '#00FFA3' },
-  { symbol: 'BNB', name: 'BNB', coingeckoId: 'binancecoin', color: '#F3BA2F' },
-  { symbol: 'XRP', name: 'XRP', coingeckoId: 'ripple', color: '#00AAE4' },
-  { symbol: 'ADA', name: 'Cardano', coingeckoId: 'cardano', color: '#0033AD' },
-  { symbol: 'DOGE', name: 'Dogecoin', coingeckoId: 'dogecoin', color: '#C3A634' },
-  { symbol: 'AVAX', name: 'Avalanche', coingeckoId: 'avalanche-2', color: '#E84142' },
-  { symbol: 'TON', name: 'Toncoin', coingeckoId: 'the-open-network', color: '#0098EA' },
-  { symbol: 'MATIC', name: 'Polygon', coingeckoId: 'matic-network', color: '#8247E5' },
-];
 
 export default function MarketsPage() {
   const router = useRouter();
@@ -50,8 +100,8 @@ export default function MarketsPage() {
       setLoading(true);
       const ids = TOKENS.map(t => t.coingeckoId).join(',');
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
-        { timeout: 5000 }
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
+        { signal: AbortSignal.timeout(5000) }
       );
       
       if (!response.ok) throw new Error('API error');
@@ -97,6 +147,7 @@ export default function MarketsPage() {
         coin: token.coingeckoId,
         symbol: token.symbol,
         name: token.name,
+        logo: token.logo,
       }
     });
   };
@@ -153,14 +204,23 @@ export default function MarketsPage() {
 
 function TokenItem({ token, onPress }) {
   const isPositive = token.change24h >= 0;
+  const [imageError, setImageError] = useState(false);
   
   return (
     <TouchableOpacity style={styles.tokenItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.tokenInfo}>
-        <View style={[styles.tokenIcon, { backgroundColor: `${token.color}25` }]}>
-          <Text style={[styles.tokenIconText, { color: token.color }]}>
-            {token.symbol[0]}
-          </Text>
+        <View style={styles.logoContainer}>
+          {!imageError ? (
+            <Image 
+              source={{ uri: token.logo }} 
+              style={styles.tokenLogo}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <View style={styles.fallbackLogo}>
+              <Text style={styles.fallbackLogoText}>{token.symbol[0]}</Text>
+            </View>
+          )}
         </View>
         <View>
           <Text style={styles.tokenSymbol}>{token.symbol}</Text>
@@ -223,7 +283,7 @@ const styles = StyleSheet.create({
   tokenItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 14,
     marginBottom: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 16,
@@ -231,14 +291,31 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   tokenInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 14 },
-  tokenIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  logoContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  tokenLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  fallbackLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 255, 240, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tokenIconText: { fontSize: 20, fontWeight: '700' },
+  fallbackLogoText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#00FFF0',
+  },
   tokenSymbol: { fontSize: 17, fontWeight: '600', color: '#FFF' },
   tokenName: { fontSize: 13, color: '#888', marginTop: 2 },
   tokenPrice: { alignItems: 'flex-end', marginRight: 8 },
