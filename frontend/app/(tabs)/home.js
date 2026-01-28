@@ -244,12 +244,7 @@ export default function HomePage() {
                   style={styles.emptyButton}
                   onPress={() => router.push('/(tabs)/markets')}
                 >
-                  <LinearGradient
-                    colors={['#00FFF0', '#00B8D4']}
-                    style={styles.emptyButtonGradient}
-                  >
-                    <Text style={styles.emptyButtonText}>Browse Markets</Text>
-                  </LinearGradient>
+                  <Text style={styles.emptyButtonText}>Browse Markets</Text>
                 </TouchableOpacity>
               </View>
             )}
