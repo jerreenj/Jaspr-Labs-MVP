@@ -505,7 +505,7 @@ export default function WalletPage() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalLabel}>Available: {holdings[withdrawToken]?.toFixed(withdrawToken === 'USDC' ? 2 : 6)} {withdrawToken}</Text>
+            <Text style={styles.modalLabel}>Available: {tradingBalance[withdrawToken]?.toFixed(withdrawToken === 'USDC' ? 2 : 6)} {withdrawToken}</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Recipient Address</Text>
