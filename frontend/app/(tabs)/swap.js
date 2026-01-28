@@ -281,6 +281,9 @@ export default function SwapPage() {
       await loadData();
       setAmount('');
       
+      // Sync to backend after successful swap
+      syncToBackend();
+      
       Alert.alert(
         '✅ Swap Complete',
         `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}${bonusText}`,
