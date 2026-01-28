@@ -862,5 +862,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
   },
-  faucetBtnText: { color: '#00FFF0', fontSize: 14, fontWeight: '600' },
+  faucetBtnText: { color: '#888', fontSize: 14, fontWeight: '600' },
 });
