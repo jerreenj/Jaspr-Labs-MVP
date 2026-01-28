@@ -1,18 +1,219 @@
-diff --git a/frontend/app/auth.js b/frontend/app/auth.js
-index a888cc1..70c7f3e 100644
---- a/frontend/app/auth.js
-+++ b/frontend/app/auth.js
-@@ -196,13 +196,6 @@ const styles = StyleSheet.create({
-     color: '#FFF',
-     letterSpacing: 1,
+diff --git a/frontend/app/(tabs)/wallet.js b/frontend/app/(tabs)/wallet.js
+index d956645..e51676a 100644
+--- a/frontend/app/(tabs)/wallet.js
++++ b/frontend/app/(tabs)/wallet.js
+@@ -282,7 +282,7 @@ export default function WalletPage() {
+ 
+   const getTokenColor = (symbol) => {
+     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
+-    return colors[symbol] || '#00FFF0';
++    return colors[symbol] || '#888';
+   };
+ 
+   // Wallet holdings (self-custodial - only shows deposited funds)
+@@ -322,7 +322,7 @@ export default function WalletPage() {
+ 
+             {/* Info Banner - Explain self-custodial */}
+             <View style={styles.infoCard}>
+-              <MaterialCommunityIcons name="information-outline" size={20} color="#00B8D4" />
++              <MaterialCommunityIcons name="information-outline" size={20} color="#888" />
+               <Text style={styles.infoText}>
+                 This is your self-custodial wallet. Deposit funds from your exchange to keep them safe. Only you control these assets.
+               </Text>
+@@ -340,14 +340,14 @@ export default function WalletPage() {
+             {/* Wallet Address */}
+             <View style={styles.addressCard}>
+               <View style={styles.addressHeader}>
+-                <MaterialCommunityIcons name="wallet" size={20} color="#00FFF0" />
++                <MaterialCommunityIcons name="wallet" size={20} color="#888" />
+                 <Text style={styles.addressTitle}>Your Wallet Address</Text>
+               </View>
+               <TouchableOpacity onPress={copyAddress} style={styles.addressBox}>
+                 <Text style={styles.addressText} numberOfLines={1}>
+                   {walletAddress ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-14)}` : 'Loading...'}
+                 </Text>
+-                <MaterialCommunityIcons name="content-copy" size={18} color="#00FFF0" />
++                <MaterialCommunityIcons name="content-copy" size={18} color="#888" />
+               </TouchableOpacity>
+             </View>
+ 
+@@ -371,7 +371,7 @@ export default function WalletPage() {
+ 
+               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/(tabs)/history')}>
+                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(0, 255, 240, 0.15)' }]}>
+-                  <MaterialCommunityIcons name="history" size={24} color="#00FFF0" />
++                  <MaterialCommunityIcons name="history" size={24} color="#888" />
+                 </View>
+                 <Text style={styles.actionText}>History</Text>
+                 <Text style={styles.actionSubtext}>View All</Text>
+@@ -407,7 +407,7 @@ export default function WalletPage() {
+                   <Text style={styles.emptyTitle}>Wallet is Empty</Text>
+                   <Text style={styles.emptyText}>Deposit funds from your exchange to keep them safe in your self-custodial wallet</Text>
+                   <TouchableOpacity style={styles.emptyButton} onPress={handleDeposit}>
+-                    <LinearGradient colors={['#00FFA3', '#00B8D4']} style={styles.emptyButtonGradient}>
++                    <LinearGradient colors={['#FFF', '#FFF']} style={styles.emptyButtonGradient}>
+                       <MaterialCommunityIcons name="bank-transfer-in" size={18} color="#000" />
+                       <Text style={styles.emptyButtonText}>Deposit from Exchange</Text>
+                     </LinearGradient>
+@@ -427,7 +427,7 @@ export default function WalletPage() {
+             </TouchableOpacity>
+ 
+             <View style={styles.warningCard}>
+-              <MaterialCommunityIcons name="shield-check" size={20} color="#00FFF0" />
++              <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
+               <Text style={styles.warningText}>
+                 Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
+               </Text>
+@@ -476,7 +476,7 @@ export default function WalletPage() {
+             <Text style={styles.depositLabel}>Send to this address:</Text>
+             <TouchableOpacity onPress={copyAddress} style={styles.depositAddressBox}>
+               <Text style={styles.depositAddressText} numberOfLines={2}>{walletAddress}</Text>
+-              <MaterialCommunityIcons name="content-copy" size={20} color="#00FFF0" />
++              <MaterialCommunityIcons name="content-copy" size={20} color="#888" />
+             </TouchableOpacity>
+ 
+             <View style={styles.depositInfo}>
+@@ -578,7 +578,7 @@ function AssetItem({ symbol, amount, value, onPress }) {
+   
+   const getTokenColor = (sym) => {
+     const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
+-    return colors[sym] || '#00FFF0';
++    return colors[sym] || '#888';
+   };
+   
+   return (
+@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
+     padding: 16,
+     marginBottom: 20,
+     borderWidth: 1,
+-    borderColor: 'rgba(255, 255, 255, 0.08)',
++    borderColor: '#222',
    },
--  labsText: {
--    fontSize: 16,
--    fontWeight: '300',
--    color: '#00FFF0',
--    letterSpacing: 5,
--    marginTop: 4,
--  },
-   subtitle: {
-     fontSize: 16,
-     color: 'rgba(255, 255, 255, 0.6)',
+   addressHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+   addressTitle: { fontSize: 13, color: '#888' },
+@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'space-between',
+-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
++    backgroundColor: '#0a0a0a',
+     padding: 12,
+     borderRadius: 8,
+   },
+@@ -673,11 +673,11 @@ const styles = StyleSheet.create({
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
++    backgroundColor: '#111',
+     borderRadius: 14,
+     padding: 16,
+     borderWidth: 1,
+-    borderColor: 'rgba(255, 255, 255, 0.08)',
++    borderColor: '#222',
+   },
+   assetLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+   assetIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+@@ -687,25 +687,25 @@ const styles = StyleSheet.create({
+   assetRight: { alignItems: 'flex-end' },
+   assetBalance: { fontSize: 16, fontWeight: '600', color: '#FFF' },
+   assetValue: { fontSize: 12, color: '#888', marginTop: 2 },
+-  emptyState: { alignItems: 'center', padding: 32 },
++  emptyState: { alignItems: 'center', padding: 32, backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: '#222' },
+   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#888', marginTop: 12 },
+   emptyText: { fontSize: 14, color: '#666', marginTop: 8, textAlign: 'center', lineHeight: 20 },
+-  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
+-  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
++  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFF' },
++  emptyButtonGradient: { paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFF' },
+   emptyButtonText: { fontSize: 16, fontWeight: '700', color: '#000' },
+   // Info card
+   infoCard: {
+     flexDirection: 'row',
+     alignItems: 'flex-start',
+-    backgroundColor: 'rgba(0, 184, 212, 0.1)',
++    backgroundColor: '#111',
+     padding: 14,
+     borderRadius: 12,
+     marginBottom: 16,
+     gap: 10,
+     borderWidth: 1,
+-    borderColor: 'rgba(0, 184, 212, 0.2)',
++    borderColor: '#222',
+   },
+-  infoText: { flex: 1, fontSize: 13, color: '#00B8D4', lineHeight: 18 },
++  infoText: { flex: 1, fontSize: 13, color: '#888', lineHeight: 18 },
+   // On-chain logo
+   onChainLogo: { width: 24, height: 24, borderRadius: 12 },
+   // Asset logo styles
+@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
+     height: 44,
+     borderRadius: 22,
+     overflow: 'hidden',
+-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
++    backgroundColor: '#1a1a1a',
+   },
+   assetLogo: {
+     width: 44,
+@@ -734,19 +734,19 @@ const styles = StyleSheet.create({
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
++    backgroundColor: '#111',
+     borderRadius: 12,
+     padding: 16,
+     marginBottom: 16,
+     borderWidth: 1,
+-    borderColor: 'rgba(255, 255, 255, 0.08)',
++    borderColor: '#222',
+   },
+   securityLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+   securityText: { fontSize: 15, color: '#FFF' },
+   warningCard: {
+     flexDirection: 'row',
+     alignItems: 'center',
+-    backgroundColor: 'rgba(0, 255, 240, 0.05)',
++    backgroundColor: '#111',
+     padding: 16,
+     borderRadius: 12,
+     gap: 12,
+@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
+     borderRadius: 12,
+     justifyContent: 'center',
+   },
+-  maxBtnText: { color: '#00FFF0', fontWeight: '700' },
++  maxBtnText: { color: '#888', fontWeight: '700' },
+   feeInfo: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+@@ -862,5 +862,5 @@ const styles = StyleSheet.create({
+     alignItems: 'center',
+     padding: 12,
+   },
+-  faucetBtnText: { color: '#00FFF0', fontSize: 14, fontWeight: '600' },
++  faucetBtnText: { color: '#888', fontSize: 14, fontWeight: '600' },
+ });
+diff --git a/model.patch b/model.patch
+index 238fada..62a4b5e 100644
+--- a/model.patch
++++ b/model.patch
+@@ -1,18 +0,0 @@
+-diff --git a/frontend/app/auth.js b/frontend/app/auth.js
+-index a888cc1..70c7f3e 100644
+---- a/frontend/app/auth.js
+-+++ b/frontend/app/auth.js
+-@@ -196,13 +196,6 @@ const styles = StyleSheet.create({
+-     color: '#FFF',
+-     letterSpacing: 1,
+-   },
+--  labsText: {
+--    fontSize: 16,
+--    fontWeight: '300',
+--    color: '#00FFF0',
+--    letterSpacing: 5,
+--    marginTop: 4,
+--  },
+-   subtitle: {
+-     fontSize: 16,
+-     color: 'rgba(255, 255, 255, 0.6)',
