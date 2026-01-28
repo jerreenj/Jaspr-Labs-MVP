@@ -78,7 +78,7 @@ export default function SettingsPage() {
           style: 'destructive',
           onPress: async () => {
             await AsyncStorage.clear();
-            router.replace('/');
+            router.replace('/auth');
           }
         }
       ]
