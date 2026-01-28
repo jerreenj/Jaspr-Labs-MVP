@@ -451,7 +451,6 @@ function HoldingItem({ symbol, amount, value, price, purchaseCost, onPress }) {
           </Text>
         )}
       </View>
-      </View>
     </TouchableOpacity>
   );
 }
