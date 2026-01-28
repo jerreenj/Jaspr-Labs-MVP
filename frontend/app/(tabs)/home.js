@@ -226,6 +226,7 @@ export default function HomePage() {
                     amount={amount}
                     value={value}
                     price={prices[symbol]}
+                    purchaseCost={purchaseInfo[symbol]?.totalCost}
                     onPress={() => {
                       if (symbol !== 'USDC') {
                         const coinIds = { BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin', XRP: 'ripple', ADA: 'cardano', DOGE: 'dogecoin', AVAX: 'avalanche-2', TON: 'the-open-network', DOT: 'polkadot', LINK: 'chainlink', MATIC: 'matic-network', UNI: 'uniswap', LTC: 'litecoin', SHIB: 'shiba-inu', TRX: 'tron', NEAR: 'near', APT: 'aptos', PEPE: 'pepe', ARB: 'arbitrum' };
