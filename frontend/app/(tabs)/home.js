@@ -156,13 +156,12 @@ export default function HomePage() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0a0a1a', '#0d1f3c', '#0a0a1a']} style={styles.gradient}>
-        <ScrollView 
-          style={styles.scroll}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
-          }
-        >
+      <ScrollView 
+        style={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
+        }
+      >
           <View style={styles.content}>
             {/* Header */}
             <View style={styles.header}>
