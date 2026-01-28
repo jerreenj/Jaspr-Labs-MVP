@@ -421,10 +421,10 @@ function HoldingItem({ symbol, amount, value, price, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a' },
+  container: { flex: 1, backgroundColor: '#000' },
   gradient: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: 20, paddingTop: 50, paddingBottom: 100 },
+  content: { padding: 20, paddingTop: 50, paddingBottom: 100, backgroundColor: '#000' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   subGreeting: { fontSize: 14, color: '#888', marginTop: 4 },
   menuBtn: { 
     padding: 8, 
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#111',
     borderRadius: 12,
   },
   portfolioCard: {
@@ -443,7 +443,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0, 255, 240, 0.2)',
+    borderColor: '#222',
+    backgroundColor: '#111',
   },
   portfolioGradient: {
     padding: 28,
@@ -452,8 +453,8 @@ const styles = StyleSheet.create({
   portfolioLabel: { fontSize: 14, color: '#888' },
   portfolioValue: { fontSize: 40, fontWeight: '700', color: '#FFF', marginTop: 8 },
   networkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8 },
-  networkDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FFA3' },
-  networkText: { fontSize: 13, color: '#00FFF0' },
+  networkDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C853' },
+  networkText: { fontSize: 13, color: '#888' },
   rewardCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -489,11 +490,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#111',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#222',
   },
   holdingLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   tokenLogoContainer: {
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#1a1a1a',
   },
   tokenLogo: {
     width: 46,
@@ -530,21 +531,23 @@ const styles = StyleSheet.create({
   holdingPrice: { fontSize: 12, color: '#666', marginTop: 2 },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#111',
     borderRadius: 16,
     padding: 40,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#666', marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: '#444', marginTop: 8, textAlign: 'center' },
-  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
+  emptyButton: { marginTop: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFF' },
   emptyButtonGradient: { paddingHorizontal: 28, paddingVertical: 14 },
   emptyButtonText: { color: '#000', fontSize: 16, fontWeight: '700' },
   activityContainer: { gap: 8, marginTop: 12 },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#111',
     borderRadius: 12,
     padding: 14,
   },
@@ -563,19 +566,19 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
   statCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#111',
     borderRadius: 14,
     padding: 18,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#222',
   },
   statValue: { fontSize: 24, fontWeight: '700', color: '#FFF', marginTop: 8 },
   statLabel: { fontSize: 12, color: '#888', marginTop: 4 },
   // Menu Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
     paddingTop: 100,
@@ -583,12 +586,12 @@ const styles = StyleSheet.create({
   },
   menuContainer: {},
   menuCard: {
-    backgroundColor: '#1a2a4a',
+    backgroundColor: '#1a1a1a',
     borderRadius: 16,
     padding: 8,
     minWidth: 220,
     borderWidth: 1,
-    borderColor: 'rgba(0, 255, 240, 0.2)',
+    borderColor: '#333',
   },
   menuItem: {
     flexDirection: 'row',
