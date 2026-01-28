@@ -153,7 +153,12 @@ export default function WalletPage() {
       return;
     }
 
-    if (!ethers.isAddress(recipientAddress)) {
+    // Validate address (simple check if ethers not available)
+    const isValidAddress = ethers 
+      ? ethers.isAddress(recipientAddress)
+      : recipientAddress.startsWith('0x') && recipientAddress.length === 42;
+    
+    if (!isValidAddress) {
       Alert.alert('Error', 'Invalid wallet address');
       return;
     }
