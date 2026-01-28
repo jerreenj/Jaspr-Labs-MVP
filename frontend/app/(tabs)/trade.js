@@ -156,8 +156,16 @@ export default function TradePage() {
     setChartLoading(true);
     try {
       const days = timeframe === '1H' ? 1 : timeframe === '24H' ? 1 : timeframe === '7D' ? 7 : timeframe === '30D' ? 30 : 365;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`
+        `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`,
+        { signal: controller.signal }
+      );
+      
+      clearTimeout(timeoutId);
       );
       const data = await response.json();
       
