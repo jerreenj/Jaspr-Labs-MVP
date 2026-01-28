@@ -89,8 +89,8 @@ export default function WalletPage() {
       const custodialHoldings = await AsyncStorage.getItem('wallet_holdings');
       setWalletHoldings(custodialHoldings ? JSON.parse(custodialHoldings) : {});
 
-      // Fetch on-chain ETH balance
-      if (address) {
+      // Fetch on-chain ETH balance (optional - requires ethers)
+      if (address && ethers) {
         try {
           const provider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
           const balance = await provider.getBalance(address);
