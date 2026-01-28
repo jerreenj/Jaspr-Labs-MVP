@@ -151,7 +151,7 @@ export default function WalletPage() {
     }
 
     const amount = parseFloat(withdrawAmount);
-    if (amount <= 0 || amount > holdings[withdrawToken]) {
+    if (amount <= 0 || amount > tradingBalance[withdrawToken]) {
       Alert.alert('Error', 'Invalid amount or insufficient balance');
       return;
     }
@@ -164,16 +164,16 @@ export default function WalletPage() {
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Update balances
-        const newHoldings = { ...holdings };
-        newHoldings[withdrawToken] -= amount;
+        const newTradingBalance = { ...tradingBalance };
+        newTradingBalance[withdrawToken] -= amount;
         
         if (withdrawToken === 'USDC') {
-          await AsyncStorage.setItem('demo_balance', newHoldings.USDC.toString());
+          await AsyncStorage.setItem('demo_balance', newTradingBalance.USDC.toString());
         } else {
           const tokenHoldings = {
-            ETH: newHoldings.ETH,
-            BTC: newHoldings.BTC,
-            SOL: newHoldings.SOL,
+            ETH: newTradingBalance.ETH,
+            BTC: newTradingBalance.BTC,
+            SOL: newTradingBalance.SOL,
           };
           await AsyncStorage.setItem('token_holdings', JSON.stringify(tokenHoldings));
         }
@@ -191,7 +191,7 @@ export default function WalletPage() {
         });
         await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
         
-        setHoldings(newHoldings);
+        setTradingBalance(newTradingBalance);
         setShowWithdrawModal(false);
         
         Alert.alert(
@@ -269,14 +269,22 @@ export default function WalletPage() {
     );
   };
 
-  const totalValue = holdings.USDC + (holdings.ETH * prices.ETH) + (holdings.BTC * prices.BTC) + (holdings.SOL * prices.SOL);
+  // Self-custodial wallet value (starts empty, only has deposited funds)
+  const walletValue = Object.entries(walletHoldings).reduce((sum, [symbol, amount]) => {
+    if (symbol === 'USDC') return sum + amount;
+    return sum + (amount * (prices[symbol] || 0));
+  }, 0);
+  
+  // On-chain ETH value
+  const onChainValue = parseFloat(onChainBalance) * prices.ETH;
 
   const getTokenColor = (symbol) => {
-    const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3' };
+    const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
     return colors[symbol] || '#00FFF0';
   };
 
-  const holdingsArray = Object.entries(holdings)
+  // Wallet holdings (self-custodial - only shows deposited funds)
+  const walletHoldingsArray = Object.entries(walletHoldings)
     .filter(([_, amount]) => amount > 0 && isFinite(amount))
     .map(([symbol, amount]) => ({
       symbol,
