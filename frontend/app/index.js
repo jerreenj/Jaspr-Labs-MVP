@@ -11,9 +11,10 @@ export default function LandingPage() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
-      {/* Header - Fixed at top */}
+      {/* Hero - Jaspr Labs as main focus */}
       <View style={styles.header}>
-        <Text style={styles.brand}>Jaspr <Text style={styles.brandSub}>Labs</Text></Text>
+        <Text style={styles.brand}>Jaspr Labs</Text>
+        <Text style={styles.tagline}>Next-gen crypto trading</Text>
       </View>
 
       {/* Features - 3 cards that fill middle */}
@@ -58,28 +59,32 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#000',
-    paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingTop: 80,
     paddingBottom: 50,
   },
   header: {
     alignItems: 'center',
+    marginBottom: 20,
   },
   brand: {
-    fontSize: 34,
-    fontWeight: '800',
+    fontSize: 52,
+    fontWeight: '700',
     color: '#FFF',
     fontFamily: 'Inter_700Bold',
+    letterSpacing: 1,
   },
-  brandSub: {
-    fontWeight: '300',
+  tagline: {
+    fontSize: 16,
     color: '#666',
+    marginTop: 8,
+    fontFamily: 'Inter_400Regular',
   },
   featuresGrid: {
     flex: 1,
     justifyContent: 'center',
-    gap: 14,
-    paddingVertical: 30,
+    gap: 12,
+    paddingVertical: 20,
   },
   featureCard: {
     flex: 1,
