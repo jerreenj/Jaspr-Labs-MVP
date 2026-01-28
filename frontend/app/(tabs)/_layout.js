@@ -33,7 +33,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="markets"
         options={{
-          title: 'Markets',
+          title: 'Trade',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="chart-line" size={size} color={color} />
           ),
