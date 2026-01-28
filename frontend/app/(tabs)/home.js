@@ -58,6 +58,11 @@ export default function HomePage() {
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
+      // Load purchase info
+      const storedPurchaseInfo = await AsyncStorage.getItem('purchase_info');
+      const purchaseData = storedPurchaseInfo ? JSON.parse(storedPurchaseInfo) : {};
+      setPurchaseInfo(purchaseData);
+      
       const count = await AsyncStorage.getItem('swap_count');
       setSwapCount(count ? parseInt(count) : 0);
       
