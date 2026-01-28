@@ -39,6 +39,7 @@ export default function HomePage() {
   const [totalValue, setTotalValue] = useState(10000);
   const [holdings, setHoldings] = useState({});
   const [prices, setPrices] = useState({});
+  const [purchaseInfo, setPurchaseInfo] = useState({});
   const [swapCount, setSwapCount] = useState(0);
   const [recentTrades, setRecentTrades] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
