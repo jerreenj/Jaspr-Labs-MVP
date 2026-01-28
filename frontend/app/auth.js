@@ -2,9 +2,9 @@ import 'react-native-get-random-values';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ethers } from 'ethers';
+import * as Crypto from 'expo-crypto';
 import { createClient } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -18,6 +18,26 @@ const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Generate a simple wallet address (for demo purposes)
+const generateWallet = async () => {
+  // Generate random bytes for private key simulation
+  const randomBytes = await Crypto.getRandomBytesAsync(32);
+  const privateKeyHex = Array.from(new Uint8Array(randomBytes))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  // Generate address from private key hash
+  const addressHash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    privateKeyHex
+  );
+  
+  return {
+    privateKey: '0x' + privateKeyHex,
+    address: '0x' + addressHash.slice(0, 40),
+  };
+};
+
 export default function AuthPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -28,7 +48,7 @@ export default function AuthPage() {
     console.log('[AUTH] Starting Quick Start login...');
     
     try {
-      const wallet = ethers.Wallet.createRandom();
+      const wallet = await generateWallet();
       console.log('[AUTH] Wallet created:', wallet.address);
       
       await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
@@ -92,7 +112,7 @@ export default function AuthPage() {
             
             if (userData?.user) {
               // Create wallet for the user
-              const wallet = ethers.Wallet.createRandom();
+              const wallet = await generateWallet();
               
               await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
               await AsyncStorage.setItem('wallet_address', wallet.address);
@@ -117,7 +137,7 @@ export default function AuthPage() {
       console.error('[AUTH] Google login error:', error);
       Alert.alert(
         'Google Sign-In',
-        'Unable to sign in with Google. Please use Quick Start to continue.',
+        error.message || 'Unable to sign in with Google. Please use Quick Start to continue.',
         [{ text: 'OK' }]
       );
     } finally {
@@ -136,11 +156,8 @@ export default function AuthPage() {
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.iconWrapper}>
-            <MaterialCommunityIcons name="wallet" size={56} color="#FFF" />
-          </View>
-          <Text style={styles.title}>Jaspr</Text>
-          <Text style={styles.tagline}>CEX Features & DEX Freedom</Text>
+          <Text style={styles.brand}>JASPR</Text>
+          <Text style={styles.tagline}>Trade Crypto Like a Pro</Text>
         </View>
 
         <View style={styles.buttons}>
@@ -161,11 +178,11 @@ export default function AuthPage() {
             )}
           </TouchableOpacity>
 
-          <Text style={styles.quickStartHint}>No sign-up required • Instant access</Text>
+          <Text style={styles.quickStartHint}>No sign-up required • Instant $10,000 demo</Text>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or sign in with</Text>
+            <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -197,12 +214,12 @@ export default function AuthPage() {
             <Text style={styles.featureText}>Self-custodial wallet</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="gift" size={20} color="#FFD700" />
-            <Text style={styles.featureText}>$10,000 demo balance</Text>
+            <MaterialCommunityIcons name="chart-line" size={20} color="#FFF" />
+            <Text style={styles.featureText}>Real-time trading</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFF" />
-            <Text style={styles.featureText}>Instant trading</Text>
+            <MaterialCommunityIcons name="swap-horizontal" size={20} color="#FFF" />
+            <Text style={styles.featureText}>25+ tokens available</Text>
           </View>
         </View>
       </View>
@@ -225,28 +242,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
   },
-  iconWrapper: {
-    backgroundColor: '#111',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#222',
-  },
-  title: {
+  brand: {
     fontSize: 44,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 2,
+    letterSpacing: 3,
+    fontFamily: 'Inter_700Bold',
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 18,
     color: '#888',
     marginTop: 8,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
   },
   buttons: {
     gap: 12,
@@ -254,7 +263,6 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     borderRadius: 14,
-    overflow: 'hidden',
     backgroundColor: '#FFF',
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,17 +274,19 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
   },
   quickStartHint: {
     textAlign: 'center',
     color: '#666',
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 14,
+    marginTop: 8,
+    fontFamily: 'Inter_400Regular',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
@@ -286,7 +296,8 @@ const styles = StyleSheet.create({
   dividerText: {
     color: '#666',
     paddingHorizontal: 16,
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
   },
   googleButton: {
     flexDirection: 'row',
@@ -307,10 +318,11 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 17,
     fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
   features: {
-    marginTop: 40,
-    gap: 14,
+    marginTop: 48,
+    gap: 16,
   },
   featureItem: {
     flexDirection: 'row',
@@ -320,6 +332,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     color: '#888',
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
   },
 });
