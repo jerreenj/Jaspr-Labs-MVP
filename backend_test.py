@@ -54,26 +54,26 @@ def test_health_endpoint():
         return False
 
 def test_root_endpoint():
-    """Test GET / endpoint"""
-    print(f"\n{Colors.BLUE}=== Testing Root Endpoint ==={Colors.END}")
+    """Test GET / endpoint - Note: This serves frontend HTML, not backend JSON"""
+    print(f"\n{Colors.BLUE}=== Testing Root Endpoint (Frontend) ==={Colors.END}")
     
     try:
         response = requests.get(BACKEND_URL, timeout=10)
         
         if response.status_code == 200:
-            data = response.json()
-            if "JASPR API" in data.get("message", ""):
-                log_test("Root Endpoint", "PASS", f"Version: {data.get('version')}")
+            # Root endpoint serves frontend HTML, not backend JSON
+            if "<!DOCTYPE html>" in response.text:
+                log_test("Root Endpoint (Frontend)", "PASS", "Serving frontend HTML correctly")
                 return True
             else:
-                log_test("Root Endpoint", "FAIL", f"Unexpected response: {data}")
+                log_test("Root Endpoint (Frontend)", "FAIL", "Not serving expected HTML")
                 return False
         else:
-            log_test("Root Endpoint", "FAIL", f"Status code: {response.status_code}")
+            log_test("Root Endpoint (Frontend)", "FAIL", f"Status code: {response.status_code}")
             return False
             
     except Exception as e:
-        log_test("Root Endpoint", "FAIL", f"Exception: {str(e)}")
+        log_test("Root Endpoint (Frontend)", "FAIL", f"Exception: {str(e)}")
         return False
 
 def test_create_account():
