@@ -347,7 +347,7 @@ export default function WalletPage() {
                 <Text style={styles.addressText} numberOfLines={1}>
                   {walletAddress ? `${walletAddress.slice(0, 14)}...${walletAddress.slice(-14)}` : 'Loading...'}
                 </Text>
-                <MaterialCommunityIcons name="content-copy" size={18} color="#00FFF0" />
+                <MaterialCommunityIcons name="content-copy" size={18} color="#888" />
               </TouchableOpacity>
             </View>
 
