@@ -175,24 +175,41 @@ export default function TradePage() {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
         const response = await fetch(
           `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_24hr_high=true&include_24hr_low=true`,
-          { signal: controller.signal }
+          { 
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+          }
         );
         
         clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error('API response not ok');
+        }
+        
         const data = await response.json();
         const tokenData = data[coinId];
-        setPrice(tokenData?.usd || FALLBACK[coinId]?.usd || 100);
-        setPriceChange(tokenData?.usd_24h_change || FALLBACK[coinId]?.change || 0);
-        setHighPrice(tokenData?.usd_24h_high || FALLBACK[coinId]?.high || 0);
-        setLowPrice(tokenData?.usd_24h_low || FALLBACK[coinId]?.low || 0);
-        setVolume(tokenData?.usd_24h_vol || FALLBACK[coinId]?.vol || 0);
+        
+        if (tokenData && tokenData.usd) {
+          setPrice(tokenData.usd);
+          setLivePrice(tokenData.usd);
+          setPriceChange(tokenData.usd_24h_change || 0);
+          setHighPrice(tokenData.usd_24h_high || tokenData.usd * 1.02);
+          setLowPrice(tokenData.usd_24h_low || tokenData.usd * 0.98);
+          setVolume(tokenData.usd_24h_vol || 1000000);
+          console.log('[TRADE] Live price loaded:', tokenData.usd);
+        } else {
+          throw new Error('No price data');
+        }
       } catch (e) {
+        console.log('[TRADE] Using fallback price for', coinId);
         const fb = FALLBACK[coinId] || { usd: 100, change: 0, high: 105, low: 95, vol: 1000000 };
         setPrice(fb.usd);
+        setLivePrice(fb.usd);
         setPriceChange(fb.change);
         setHighPrice(fb.high);
         setLowPrice(fb.low);
