@@ -1,6 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function LandingPage() {
@@ -8,44 +7,32 @@ export default function LandingPage() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#000428', '#004e92']}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <View style={styles.iconWrapper}>
-              <MaterialCommunityIcons name="wallet" size={64} color="#00FFF0" />
-            </View>
-            <Text style={styles.logoText}>Jaspr</Text>
-            <Text style={styles.tagline}>CEX Features & DEX Freedom</Text>
+      <View style={styles.content}>
+        <View style={styles.logoContainer}>
+          <View style={styles.iconWrapper}>
+            <MaterialCommunityIcons name="wallet" size={64} color="#FFF" />
           </View>
-
-          <View style={styles.features}>
-            <Feature icon="lock-outline" text="Secure" />
-            <Feature icon="flash" text="Fast" />
-            <Feature icon="trending-up" text="Profitable" />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => router.push('/auth')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#00FFF0', '#00B8D4']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 0}}
-              style={styles.buttonGradient}
-            >
-              <Text style={styles.buttonText}>Launch App</Text>
-              <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <Text style={styles.disclaimer}>Base Sepolia Testnet</Text>
+          <Text style={styles.logoText}>Jaspr</Text>
+          <Text style={styles.tagline}>CEX Features & DEX Freedom</Text>
         </View>
-      </LinearGradient>
+
+        <View style={styles.features}>
+          <Feature icon="lock-outline" text="Secure" />
+          <Feature icon="flash" text="Fast" />
+          <Feature icon="trending-up" text="Profitable" />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.button}
+          onPress={() => router.push('/auth')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>Launch App</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
+        </TouchableOpacity>
+
+        <Text style={styles.disclaimer}>Base Sepolia Testnet</Text>
+      </View>
     </View>
   );
 }
@@ -53,7 +40,7 @@ export default function LandingPage() {
 function Feature({ icon, text }) {
   return (
     <View style={styles.feature}>
-      <MaterialCommunityIcons name={icon} size={24} color="#00FFF0" />
+      <MaterialCommunityIcons name={icon} size={24} color="#FFF" />
       <Text style={styles.featureText}>{text}</Text>
     </View>
   );
@@ -61,22 +48,24 @@ function Feature({ icon, text }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  gradient: { flex: 1 },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
+    backgroundColor: '#000',
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 64,
   },
   iconWrapper: {
-    backgroundColor: 'rgba(0, 255, 240, 0.1)',
+    backgroundColor: '#111',
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   logoText: {
     fontSize: 56,
@@ -87,7 +76,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 16,
-    color: '#00FFF0',
+    color: '#888',
     textAlign: 'center',
   },
   features: {
@@ -101,7 +90,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featureText: {
-    color: '#FFF',
+    color: '#888',
     fontSize: 13,
     fontWeight: '500',
   },
@@ -109,13 +98,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#00FFF0',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  buttonGradient: {
+    backgroundColor: '#FFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -128,7 +111,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   disclaimer: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: '#444',
     fontSize: 12,
     marginTop: 32,
   },
