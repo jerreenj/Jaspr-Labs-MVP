@@ -19,7 +19,7 @@ export default function LandingPage() {
         <View style={styles.features}>
           <Feature icon="lock-outline" text="Secure" />
           <Feature icon="flash" text="Fast" />
-          <Feature icon="trending-up" text="Profitable" />
+          <Feature icon="shield-check" text="Reliable" />
         </View>
 
         <TouchableOpacity 
