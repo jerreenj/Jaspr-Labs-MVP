@@ -3,8 +3,42 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
+
+// API base URL for syncing
+const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
+
+// Sync account data to backend
+const syncToBackend = async () => {
+  try {
+    const walletAddress = await AsyncStorage.getItem('wallet_address');
+    if (!walletAddress) return;
+    
+    const balance = parseFloat(await AsyncStorage.getItem('demo_balance') || '10000');
+    const holdings = JSON.parse(await AsyncStorage.getItem('token_holdings') || '{}');
+    const purchaseInfo = JSON.parse(await AsyncStorage.getItem('purchase_info') || '{}');
+    const swapCount = parseInt(await AsyncStorage.getItem('swap_count') || '0');
+    const txHistory = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
+    
+    await fetch(`${API_URL}/api/account/sync`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wallet_address: walletAddress,
+        balance,
+        holdings,
+        purchase_info: purchaseInfo,
+        swap_count: swapCount,
+        tx_history: txHistory,
+      }),
+    });
+    console.log('[SYNC] Account synced to backend');
+  } catch (error) {
+    console.log('[SYNC] Backend sync failed (offline):', error.message);
+  }
+};
 
 // All 25 tokens with their info
 const ALL_TOKENS = {
