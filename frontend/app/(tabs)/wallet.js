@@ -545,14 +545,11 @@ export default function WalletPage() {
               onPress={executeWithdraw}
               disabled={sending}
             >
-              <LinearGradient
-                colors={sending ? ['#333', '#222'] : ['#FF9800', '#F57C00']}
-                style={styles.withdrawBtnGradient}
-              >
-                <Text style={styles.withdrawBtnText}>
+              <View style={[styles.withdrawBtnGradient, { backgroundColor: sending ? '#333' : '#FFF' }]}>
+                <Text style={[styles.withdrawBtnText, { color: sending ? '#888' : '#000' }]}>
                   {sending ? 'Sending...' : `Withdraw ${withdrawToken}`}
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <Text style={styles.modalWarning}>
