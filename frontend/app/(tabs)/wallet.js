@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   scroll: { flex: 1, backgroundColor: '#000' },
   content: { padding: 20, paddingTop: 50, paddingBottom: 100 },
-  title: { fontSize: 28, fontWeight: '700', color: '#FFF' },
+  title: { fontSize: 28, fontWeight: '700', color: '#FFF', fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 14, color: '#888', marginBottom: 20 },
   balanceCard: { borderRadius: 20, overflow: 'hidden', marginBottom: 16, borderWidth: 1, borderColor: '#222', backgroundColor: '#111' },
   balanceGradient: { padding: 28, alignItems: 'center' },
