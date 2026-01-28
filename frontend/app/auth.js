@@ -293,14 +293,47 @@ export default function AuthPage() {
         </View>
 
         <View style={styles.buttons}>
+          {/* Show existing account option if available */}
+          {existingAccount && !checkingAccount && (
+            <>
+              <TouchableOpacity 
+                style={styles.existingAccountButton}
+                onPress={handleContinueExisting}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="account-check" size={24} color="#FFF" />
+                    <Text style={styles.existingAccountText}>
+                      Continue as {existingAccount.username || 'User'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <Text style={styles.existingAccountHint}>
+                Wallet: {existingAccount.wallet_address?.slice(0, 6)}...{existingAccount.wallet_address?.slice(-4)}
+              </Text>
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or create new</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            </>
+          )}
+
           {/* Quick Start Button */}
           <TouchableOpacity 
             style={styles.button}
             onPress={handleQuickStart}
-            disabled={loading}
+            disabled={loading || checkingAccount}
             activeOpacity={0.8}
           >
-            {loading ? (
+            {(loading && !existingAccount) || checkingAccount ? (
               <ActivityIndicator color="#000" />
             ) : (
               <>
@@ -322,7 +355,7 @@ export default function AuthPage() {
           <TouchableOpacity 
             style={styles.googleButton}
             onPress={handleGoogleLogin}
-            disabled={googleLoading}
+            disabled={googleLoading || checkingAccount}
             activeOpacity={0.8}
           >
             {googleLoading ? (
