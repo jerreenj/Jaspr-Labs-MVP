@@ -242,19 +242,15 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 48,
+    alignItems: 'center',
   },
   brand: {
     fontSize: 44,
     fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 3,
+    letterSpacing: 2,
     fontFamily: 'Inter_700Bold',
-  },
-  tagline: {
-    fontSize: 18,
-    color: '#888',
-    marginTop: 8,
-    fontFamily: 'Inter_500Medium',
+    textAlign: 'center',
   },
   buttons: {
     gap: 12,
