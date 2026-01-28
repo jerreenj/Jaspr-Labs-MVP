@@ -11,6 +11,9 @@ export default function LandingPage() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
+      {/* Top spacer */}
+      <View style={styles.topSpacer} />
+      
       {/* Brand */}
       <Text style={styles.brand}>Jaspr Labs</Text>
 
@@ -42,23 +45,24 @@ export default function LandingPage() {
         </View>
       </View>
 
-      {/* CTA Button */}
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={() => router.push('/auth')}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.buttonText}>Get Started</Text>
-        <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
-      </TouchableOpacity>
+      {/* Bottom section */}
+      <View style={styles.bottomSection}>
+        <TouchableOpacity 
+          style={styles.button}
+          onPress={() => router.push('/auth')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>Get Started</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
+        </TouchableOpacity>
 
-      {/* Trust Badge */}
-      <View style={styles.trustBadge}>
-        <MaterialCommunityIcons name="check-decagram" size={14} color="#00C853" />
-        <Text style={styles.trustText}>$10,000 Demo • No Sign-up</Text>
+        <View style={styles.trustBadge}>
+          <MaterialCommunityIcons name="check-decagram" size={14} color="#00C853" />
+          <Text style={styles.trustText}>$10,000 Demo • No Sign-up</Text>
+        </View>
+
+        <Text style={styles.footer}>Base Sepolia Testnet</Text>
       </View>
-
-      <Text style={styles.footer}>Base Sepolia Testnet</Text>
     </View>
   );
 }
@@ -68,20 +72,21 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: '#000',
     paddingHorizontal: 16,
-    paddingTop: height * 0.12,
-    paddingBottom: 20,
+  },
+  topSpacer: {
+    height: height * 0.08,
   },
   brand: {
     fontSize: 36,
     fontWeight: '800',
     color: '#FFF',
     textAlign: 'center',
-    marginBottom: 20,
     fontFamily: 'Inter_700Bold',
   },
   features: {
     flex: 1,
     justifyContent: 'center',
+    paddingVertical: 20,
   },
   featureRow: {
     flexDirection: 'row',
@@ -108,6 +113,9 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
+  bottomSection: {
+    paddingBottom: 30,
+  },
   button: {
     backgroundColor: '#FFF',
     borderRadius: 12,
@@ -116,7 +124,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 16,
   },
   buttonText: {
     color: '#000',
@@ -139,6 +146,6 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 10,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 8,
   },
 });
