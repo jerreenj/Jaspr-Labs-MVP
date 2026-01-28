@@ -123,10 +123,15 @@ export default function TradePage() {
       };
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         const response = await fetch(
           `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_24hr_high=true&include_24hr_low=true`,
-          { signal: AbortSignal.timeout(5000) }
+          { signal: controller.signal }
         );
+        
+        clearTimeout(timeoutId);
         const data = await response.json();
         const tokenData = data[coinId];
         setPrice(tokenData?.usd || FALLBACK[coinId]?.usd || 100);
