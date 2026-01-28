@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, Pressable, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
