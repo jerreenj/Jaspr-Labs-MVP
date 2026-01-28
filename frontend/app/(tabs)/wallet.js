@@ -427,7 +427,7 @@ export default function WalletPage() {
             </TouchableOpacity>
 
             <View style={styles.warningCard}>
-              <MaterialCommunityIcons name="shield-check" size={20} color="#00FFF0" />
+              <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
               <Text style={styles.warningText}>
                 Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
               </Text>
