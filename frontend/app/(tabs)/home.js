@@ -496,6 +496,25 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   holdingLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  tokenLogoContainer: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  tokenLogo: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+  },
+  tokenIconFallback: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   tokenIcon: {
     width: 46,
     height: 46,
