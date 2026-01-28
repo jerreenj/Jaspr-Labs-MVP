@@ -532,7 +532,7 @@ export default function WalletPage() {
                 />
                 <TouchableOpacity 
                   style={styles.maxBtn}
-                  onPress={() => setWithdrawAmount(holdings[withdrawToken]?.toString() || '0')}
+                  onPress={() => setWithdrawAmount(tradingBalance[withdrawToken]?.toString() || '0')}
                 >
                   <Text style={styles.maxBtnText}>MAX</Text>
                 </TouchableOpacity>
