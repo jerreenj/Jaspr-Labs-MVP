@@ -276,3 +276,124 @@ def root():
 @app.get("/health")
 async def health_check():
     return await health()
+
+# ==================== GOOGLE AUTH ROUTES ====================
+
+@app.post("/api/auth/google")
+async def google_auth(auth_data: GoogleAuthRequest):
+    """Handle Google OAuth - create/update user and add to waitlist"""
+    try:
+        email = auth_data.email.lower().strip()
+        
+        # Add to waitlist collection (for marketing)
+        existing_waitlist = waitlist_collection.find_one({"email": email})
+        if not existing_waitlist:
+            waitlist_collection.insert_one({
+                "email": email,
+                "name": auth_data.name,
+                "source": "google_auth",
+                "created_at": datetime.utcnow().isoformat()
+            })
+        
+        # Check if user account exists
+        existing_user = users_collection.find_one({"email": email})
+        
+        if existing_user:
+            # Update last login
+            users_collection.update_one(
+                {"email": email},
+                {"$set": {
+                    "name": auth_data.name or existing_user.get("name"),
+                    "picture": auth_data.picture or existing_user.get("picture"),
+                    "last_login": datetime.utcnow().isoformat()
+                }}
+            )
+            updated_user = users_collection.find_one({"email": email})
+            return {
+                "success": True,
+                "is_new": False,
+                "user": serialize_doc(updated_user),
+                "message": "Welcome back!"
+            }
+        
+        # Create new user account with Google info
+        # Generate wallet address from email hash
+        import hashlib
+        email_hash = hashlib.sha256(email.encode()).hexdigest()
+        wallet_address = '0x' + email_hash[:40]
+        
+        new_user = {
+            "email": email,
+            "name": auth_data.name or email.split('@')[0],
+            "picture": auth_data.picture,
+            "google_id": auth_data.google_id,
+            "wallet_address": wallet_address,
+            "provider": "google",
+            "balance": 10000.0,
+            "holdings": {},
+            "purchase_info": {},
+            "swap_count": 0,
+            "tx_history": [],
+            "created_at": datetime.utcnow().isoformat(),
+            "last_login": datetime.utcnow().isoformat()
+        }
+        
+        result = users_collection.insert_one(new_user)
+        new_user['_id'] = str(result.inserted_id)
+        
+        return {
+            "success": True,
+            "is_new": True,
+            "user": new_user,
+            "message": "Account created with $10,000 demo balance!"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/auth/user/{email}")
+async def get_user_by_email(email: str):
+    """Get user by email"""
+    try:
+        user = users_collection.find_one({"email": email.lower().strip()})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"success": True, "user": serialize_doc(user)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== WAITLIST ROUTES ====================
+
+@app.post("/api/waitlist")
+async def add_to_waitlist(entry: WaitlistEntry):
+    """Add email to waitlist"""
+    try:
+        email = entry.email.lower().strip()
+        
+        existing = waitlist_collection.find_one({"email": email})
+        if existing:
+            return {"success": True, "message": "Already on waitlist!", "is_new": False}
+        
+        waitlist_collection.insert_one({
+            "email": email,
+            "source": entry.source,
+            "created_at": datetime.utcnow().isoformat()
+        })
+        
+        return {"success": True, "message": "Added to waitlist!", "is_new": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/waitlist")
+async def get_waitlist(limit: int = 100):
+    """Get all waitlist emails (admin)"""
+    try:
+        entries = list(waitlist_collection.find().sort("created_at", -1).limit(limit))
+        return {
+            "success": True,
+            "count": waitlist_collection.count_documents({}),
+            "entries": [serialize_doc(e) for e in entries]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
