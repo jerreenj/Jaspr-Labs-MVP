@@ -19,6 +19,7 @@ db = client[DB_NAME]
 # Collections
 users_collection = db['users']
 transactions_collection = db['transactions']
+waitlist_collection = db['waitlist']  # For collecting emails
 
 app = FastAPI(title="JASPR API")
 
