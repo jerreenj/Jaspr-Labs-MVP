@@ -124,11 +124,6 @@ export default function MarketsPage() {
     }
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadPrices();
-  };
-
   const filteredTokens = tokens.filter(t => 
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.symbol.toLowerCase().includes(search.toLowerCase())
