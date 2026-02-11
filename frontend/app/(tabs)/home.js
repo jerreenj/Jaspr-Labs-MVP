@@ -35,7 +35,6 @@ const TOKEN_LOGOS = {
 
 export default function HomePage() {
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
   const [totalValue, setTotalValue] = useState(10000);
   const [holdings, setHoldings] = useState({});
   const [prices, setPrices] = useState({});
