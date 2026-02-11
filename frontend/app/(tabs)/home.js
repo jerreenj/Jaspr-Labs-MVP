@@ -180,12 +180,7 @@ export default function HomePage() {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scroll}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
-        }
-      >
+      <ScrollView style={styles.scroll}>
           <View style={styles.content}>
             {/* Header */}
             <View style={styles.header}>
