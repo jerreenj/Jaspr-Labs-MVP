@@ -5,9 +5,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import { createClient } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -15,21 +14,18 @@ WebBrowser.maybeCompleteAuthSession();
 // API base URL
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
-// Initialize Supabase client using environment variables only
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || Constants.expoConfig?.extra?.supabaseUrl || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || Constants.expoConfig?.extra?.supabaseAnonKey || '';
-
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+// Google OAuth Client IDs (you'll need to set these up in Google Cloud Console)
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
 // Generate a simple wallet address (for demo purposes)
 const generateWallet = async () => {
-  // Generate random bytes for private key simulation
   const randomBytes = await Crypto.getRandomBytesAsync(32);
   const privateKeyHex = Array.from(new Uint8Array(randomBytes))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
   
-  // Generate address from private key hash
   const addressHash = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     privateKeyHex
@@ -45,7 +41,6 @@ const generateWallet = async () => {
 const syncAccountWithBackend = async (walletAddress, accountData = null) => {
   try {
     if (accountData) {
-      // Sync local data to backend
       const response = await fetch(`${API_URL}/api/account/sync`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -60,7 +55,6 @@ const syncAccountWithBackend = async (walletAddress, accountData = null) => {
       });
       return await response.json();
     } else {
-      // Create or get account
       const response = await fetch(`${API_URL}/api/account/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,13 +71,33 @@ const syncAccountWithBackend = async (walletAddress, accountData = null) => {
   }
 };
 
-// Load account from backend
-const loadAccountFromBackend = async (walletAddress) => {
+// Google Auth with MongoDB backend
+const handleGoogleAuthWithBackend = async (userInfo) => {
   try {
-    const response = await fetch(`${API_URL}/api/account/${walletAddress}`);
+    const response = await fetch(`${API_URL}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+        google_id: userInfo.id,
+      }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.log('[AUTH] Google auth backend error:', error.message);
+    return null;
+  }
+};
+
+// Load account from backend by email
+const loadAccountFromBackendByEmail = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/user/${encodeURIComponent(email)}`);
     if (response.ok) {
       const data = await response.json();
-      return data.account;
+      return data.user;
     }
     return null;
   } catch (error) {
@@ -99,6 +113,21 @@ export default function AuthPage() {
   const [existingAccount, setExistingAccount] = useState(null);
   const [checkingAccount, setCheckingAccount] = useState(true);
 
+  // Google Auth configuration
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    expoClientId: GOOGLE_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: GOOGLE_CLIENT_ID,
+  });
+
+  // Handle Google Auth response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      handleGoogleResponse(response.authentication?.accessToken);
+    }
+  }, [response]);
+
   // Check for existing account on mount
   useEffect(() => {
     checkExistingAccount();
@@ -106,10 +135,9 @@ export default function AuthPage() {
 
   const checkExistingAccount = async () => {
     try {
-      const savedAddress = await AsyncStorage.getItem('wallet_address');
-      if (savedAddress) {
-        // Try to load from backend
-        const backendAccount = await loadAccountFromBackend(savedAddress);
+      const savedEmail = await AsyncStorage.getItem('user_email');
+      if (savedEmail) {
+        const backendAccount = await loadAccountFromBackendByEmail(savedEmail);
         if (backendAccount) {
           setExistingAccount(backendAccount);
         }
@@ -121,23 +149,82 @@ export default function AuthPage() {
     }
   };
 
+  const handleGoogleResponse = async (accessToken) => {
+    if (!accessToken) {
+      setGoogleLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch user info from Google
+      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userInfo = await userInfoResponse.json();
+      
+      console.log('[AUTH] Google user info:', userInfo.email);
+
+      // Send to our backend (creates account + adds to waitlist)
+      const backendResult = await handleGoogleAuthWithBackend(userInfo);
+      
+      if (backendResult?.success && backendResult.user) {
+        const user = backendResult.user;
+        
+        // Store in AsyncStorage
+        await AsyncStorage.setItem('user_email', user.email);
+        await AsyncStorage.setItem('username', user.name || 'User');
+        await AsyncStorage.setItem('user_picture', user.picture || '');
+        await AsyncStorage.setItem('wallet_address', user.wallet_address);
+        await AsyncStorage.setItem('is_logged_in', 'true');
+        await AsyncStorage.setItem('auth_provider', 'google');
+        await AsyncStorage.setItem('demo_balance', String(user.balance || 10000));
+        await AsyncStorage.setItem('token_holdings', JSON.stringify(user.holdings || {}));
+        await AsyncStorage.setItem('purchase_info', JSON.stringify(user.purchase_info || {}));
+        await AsyncStorage.setItem('swap_count', String(user.swap_count || 0));
+        await AsyncStorage.setItem('tx_history', JSON.stringify(user.tx_history || []));
+        
+        console.log('[AUTH] Google login successful, navigating to home...');
+        router.replace('/(tabs)/home');
+      } else {
+        Alert.alert('Error', 'Failed to create account. Please try again.');
+      }
+    } catch (error) {
+      console.error('[AUTH] Google auth error:', error);
+      Alert.alert('Error', 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    
+    try {
+      await promptAsync();
+    } catch (error) {
+      console.error('[AUTH] Google prompt error:', error);
+      Alert.alert('Error', 'Could not open Google sign-in. Please try Quick Start instead.');
+      setGoogleLoading(false);
+    }
+  };
+
   const handleContinueExisting = async () => {
     if (!existingAccount) return;
     
     setLoading(true);
     try {
-      // Restore account data to AsyncStorage
+      await AsyncStorage.setItem('user_email', existingAccount.email || '');
       await AsyncStorage.setItem('wallet_address', existingAccount.wallet_address);
       await AsyncStorage.setItem('is_logged_in', 'true');
-      await AsyncStorage.setItem('auth_provider', existingAccount.provider || 'quickstart');
+      await AsyncStorage.setItem('auth_provider', existingAccount.provider || 'google');
       await AsyncStorage.setItem('demo_balance', String(existingAccount.balance || 10000));
       await AsyncStorage.setItem('token_holdings', JSON.stringify(existingAccount.holdings || {}));
       await AsyncStorage.setItem('purchase_info', JSON.stringify(existingAccount.purchase_info || {}));
       await AsyncStorage.setItem('swap_count', String(existingAccount.swap_count || 0));
       await AsyncStorage.setItem('tx_history', JSON.stringify(existingAccount.tx_history || []));
-      await AsyncStorage.setItem('username', existingAccount.username || 'User');
+      await AsyncStorage.setItem('username', existingAccount.name || 'User');
       
-      console.log('[AUTH] Restored existing account:', existingAccount.wallet_address);
+      console.log('[AUTH] Restored existing account:', existingAccount.email);
       router.replace('/(tabs)/home');
     } catch (error) {
       console.error('[AUTH] Error restoring account:', error);
@@ -152,12 +239,11 @@ export default function AuthPage() {
     console.log('[AUTH] Starting Quick Start login...');
     
     try {
-      // First check if we have an existing wallet
+      // Check for existing wallet
       const existingAddress = await AsyncStorage.getItem('wallet_address');
       let walletAddress = existingAddress;
       
       if (!existingAddress) {
-        // Only create new wallet if none exists
         const wallet = await generateWallet();
         walletAddress = wallet.address;
         await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
@@ -171,7 +257,6 @@ export default function AuthPage() {
       const backendResult = await syncAccountWithBackend(walletAddress);
       console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
       
-      // Set default values
       let initialBalance = 10000;
       let holdings = {};
       let purchaseInfo = {};
@@ -179,7 +264,6 @@ export default function AuthPage() {
       let txHistory = [];
       
       if (backendResult?.account) {
-        // Restore data from backend (whether new or existing)
         initialBalance = backendResult.account.balance || 10000;
         holdings = backendResult.account.holdings || {};
         purchaseInfo = backendResult.account.purchase_info || {};
@@ -207,200 +291,56 @@ export default function AuthPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    // Check if Supabase is configured
-    if (!supabase) {
-      Alert.alert(
-        'Google Login Not Available',
-        'Google authentication is not configured. Please use Quick Start to demo the app.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    
-    setGoogleLoading(true);
-    
-    try {
-      const redirectUrl = makeRedirectUri({
-        scheme: 'jaspr',
-        path: 'auth/callback',
-      });
-      
-      console.log('[AUTH] Redirect URL:', redirectUrl);
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true,
-        },
-      });
-      
-      if (error) {
-        console.error('[AUTH] Supabase OAuth error:', error);
-        throw error;
-      }
-      
-      if (data?.url) {
-        console.log('[AUTH] Opening browser for Google auth...');
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectUrl
-        );
-        
-        console.log('[AUTH] Browser result:', result.type);
-        
-        if (result.type === 'success') {
-          // Extract the access token from the URL
-          const url = result.url;
-          const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1]);
-          const accessToken = params.get('access_token');
-          
-          if (accessToken) {
-            const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
-            
-            if (userData?.user) {
-              // Create wallet for the user
-              const wallet = await generateWallet();
-              
-              // Create account on backend first
-              const backendResult = await syncAccountWithBackend(wallet.address);
-              console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
-              
-              // If backend returned existing account with data, use that
-              let initialBalance = 10000;
-              let holdings = {};
-              let purchaseInfo = {};
-              let swapCount = 0;
-              let txHistory = [];
-              
-              if (backendResult?.account && !backendResult.is_new) {
-                // Existing account - restore data
-                initialBalance = backendResult.account.balance || 10000;
-                holdings = backendResult.account.holdings || {};
-                purchaseInfo = backendResult.account.purchase_info || {};
-                swapCount = backendResult.account.swap_count || 0;
-                txHistory = backendResult.account.tx_history || [];
-                console.log('[AUTH] Restored existing Google account data');
-              }
-              
-              await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
-              await AsyncStorage.setItem('wallet_address', wallet.address);
-              await AsyncStorage.setItem('username', userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'User');
-              await AsyncStorage.setItem('user_email', userData.user.email || '');
-              await AsyncStorage.setItem('user_picture', userData.user.user_metadata?.avatar_url || '');
-              await AsyncStorage.setItem('is_logged_in', 'true');
-              await AsyncStorage.setItem('auth_provider', 'google');
-              await AsyncStorage.setItem('supabase_user_id', userData.user.id);
-              await AsyncStorage.setItem('demo_balance', String(initialBalance));
-              await AsyncStorage.setItem('token_holdings', JSON.stringify(holdings));
-              await AsyncStorage.setItem('purchase_info', JSON.stringify(purchaseInfo));
-              await AsyncStorage.setItem('swap_count', String(swapCount));
-              await AsyncStorage.setItem('tx_history', JSON.stringify(txHistory));
-              
-              router.replace('/(tabs)/home');
-              return;
-            }
-          }
-        }
-        
-        // If we reach here, auth wasn't successful
-        throw new Error('Authentication was cancelled or failed');
-      }
-    } catch (error) {
-      console.error('[AUTH] Google login error:', error);
-      Alert.alert(
-        'Google Sign-In',
-        error.message || 'Unable to sign in with Google. Please use Quick Start to continue.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+  if (checkingAccount) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#FFF" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-      </TouchableOpacity>
-
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.brand}>Jaspr</Text>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <MaterialCommunityIcons name="wallet" size={64} color="#FFF" />
+          <Text style={styles.title}>Jaspr Labs</Text>
+          <Text style={styles.subtitle}>Your gateway to crypto trading</Text>
         </View>
 
-        <View style={styles.buttons}>
-          {/* Show existing account option if available */}
-          {existingAccount && !checkingAccount && (
-            <>
-              <TouchableOpacity 
-                style={styles.existingAccountButton}
-                onPress={handleContinueExisting}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="account-check" size={24} color="#FFF" />
-                    <Text style={styles.existingAccountText}>
-                      Continue as {existingAccount.username || 'User'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <Text style={styles.existingAccountHint}>
-                Wallet: {existingAccount.wallet_address?.slice(0, 6)}...{existingAccount.wallet_address?.slice(-4)}
-              </Text>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or create new</Text>
-                <View style={styles.dividerLine} />
-              </View>
-            </>
-          )}
-
-          {/* Quick Start Button */}
+        {/* Existing Account Card */}
+        {existingAccount && (
           <TouchableOpacity 
-            style={styles.button}
-            onPress={handleQuickStart}
-            disabled={loading || checkingAccount}
-            activeOpacity={0.8}
+            style={styles.existingAccountCard}
+            onPress={handleContinueExisting}
+            disabled={loading}
           >
-            {(loading && !existingAccount) || checkingAccount ? (
-              <ActivityIndicator color="#000" />
+            <View style={styles.existingAccountContent}>
+              <MaterialCommunityIcons name="account-check" size={24} color="#00C853" />
+              <View style={styles.existingAccountText}>
+                <Text style={styles.existingAccountTitle}>Continue as {existingAccount.name || existingAccount.email?.split('@')[0]}</Text>
+                <Text style={styles.existingAccountSubtitle}>{existingAccount.email || 'Quick Start account'}</Text>
+              </View>
+            </View>
+            {loading ? (
+              <ActivityIndicator size="small" color="#00C853" />
             ) : (
-              <>
-                <MaterialCommunityIcons name="flash" size={24} color="#000" />
-                <Text style={styles.buttonText}>Quick Start</Text>
-              </>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#00C853" />
             )}
           </TouchableOpacity>
+        )}
 
-          <Text style={styles.quickStartHint}>No sign-up required • Instant $10,000 demo</Text>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google Button */}
-          <TouchableOpacity 
+        {/* Auth Buttons */}
+        <View style={styles.authButtons}>
+          {/* Google Sign In */}
+          <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleLogin}
-            disabled={googleLoading || checkingAccount}
-            activeOpacity={0.8}
+            disabled={googleLoading || !request}
           >
             {googleLoading ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator size="small" color="#000" />
             ) : (
               <>
                 <Image 
@@ -411,21 +351,40 @@ export default function AuthPage() {
               </>
             )}
           </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Quick Start */}
+          <TouchableOpacity
+            style={styles.quickStartButton}
+            onPress={handleQuickStart}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="rocket-launch" size={20} color="#FFF" />
+                <Text style={styles.quickStartText}>Quick Start</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.quickStartHint}>No sign-up required • $10,000 demo balance</Text>
         </View>
 
         {/* Features */}
         <View style={styles.features}>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="shield-check" size={20} color="#00C853" />
+          <View style={styles.feature}>
+            <MaterialCommunityIcons name="shield-check" size={18} color="#00C853" />
+            <Text style={styles.featureText}>Secure & Private</Text>
+          </View>
+          <View style={styles.feature}>
+            <MaterialCommunityIcons name="wallet" size={18} color="#00C853" />
             <Text style={styles.featureText}>Self-custodial wallet</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="chart-line" size={20} color="#FFF" />
-            <Text style={styles.featureText}>Real-time trading</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons name="swap-horizontal" size={20} color="#FFF" />
-            <Text style={styles.featureText}>25+ tokens available</Text>
           </View>
         </View>
       </View>
@@ -434,131 +393,132 @@ export default function AuthPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    padding: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
+    paddingHorizontal: 24,
     justifyContent: 'center',
-    paddingHorizontal: 28,
   },
-  header: {
-    marginBottom: 48,
+  logoContainer: {
     alignItems: 'center',
+    marginBottom: 40,
   },
-  brand: {
-    fontSize: 44,
-    fontWeight: '800',
-    color: '#FFF',
-    letterSpacing: 2,
-    fontFamily: 'Inter_700Bold',
-    textAlign: 'center',
-  },
-  buttons: {
-    gap: 12,
-  },
-  button: {
-    width: '100%',
-    borderRadius: 14,
-    backgroundColor: '#FFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 10,
-  },
-  buttonText: {
-    color: '#000',
-    fontSize: 18,
+  title: {
+    fontSize: 36,
     fontWeight: '700',
+    color: '#FFF',
+    marginTop: 16,
     fontFamily: 'Inter_700Bold',
   },
-  quickStartHint: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
+  subtitle: {
+    fontSize: 16,
+    color: '#888',
     marginTop: 8,
-    fontFamily: 'Inter_400Regular',
   },
-  existingAccountButton: {
-    width: '100%',
-    borderRadius: 14,
-    backgroundColor: '#00C853',
+  existingAccountCard: {
+    backgroundColor: '#0D2818',
+    borderWidth: 1,
+    borderColor: '#00C853',
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 10,
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  existingAccountContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   existingAccountText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
+    marginLeft: 12,
+    flex: 1,
   },
-  existingAccountHint: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 12,
-    marginBottom: 16,
-    fontFamily: 'Inter_400Regular',
+  existingAccountTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  existingAccountSubtitle: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
+  },
+  authButtons: {
+    marginBottom: 32,
+  },
+  googleButton: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#222',
+    backgroundColor: '#333',
   },
   dividerText: {
     color: '#666',
-    paddingHorizontal: 16,
+    marginHorizontal: 16,
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
   },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 14,
-    backgroundColor: '#111',
+  quickStartButton: {
+    backgroundColor: '#1A1A1A',
     borderWidth: 1,
     borderColor: '#333',
-    gap: 12,
-  },
-  googleIcon: {
-    width: 24,
-    height: 24,
-  },
-  googleButtonText: {
-    color: '#FFF',
-    fontSize: 17,
-    fontWeight: '600',
-    fontFamily: 'Inter_600SemiBold',
-  },
-  features: {
-    marginTop: 48,
-    gap: 16,
-  },
-  featureItem: {
+    borderRadius: 12,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+  },
+  quickStartText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
+    marginLeft: 8,
+  },
+  quickStartHint: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 13,
+    marginTop: 12,
+  },
+  features: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  feature: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   featureText: {
     color: '#888',
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    marginLeft: 6,
   },
 });
