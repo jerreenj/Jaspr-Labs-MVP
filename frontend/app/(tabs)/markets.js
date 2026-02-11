@@ -164,12 +164,7 @@ export default function MarketsPage() {
         )}
       </View>
 
-      <ScrollView 
-        style={styles.scroll}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
-        }
-      >
+      <ScrollView style={styles.scroll}>
         <View style={styles.tokenList}>
           {loading && tokens.length === 0 ? (
             <View style={styles.loadingContainer}>
