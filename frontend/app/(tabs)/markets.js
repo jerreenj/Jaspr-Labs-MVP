@@ -64,13 +64,13 @@ const FALLBACK_PRICES = {
 export default function MarketsPage() {
   const router = useRouter();
   const [tokens, setTokens] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadPrices();
-    const interval = setInterval(loadPrices, 30000);
+    // Auto-refresh prices every 60 seconds (less frequent)
+    const interval = setInterval(loadPrices, 60000);
     return () => clearInterval(interval);
   }, []);
 
