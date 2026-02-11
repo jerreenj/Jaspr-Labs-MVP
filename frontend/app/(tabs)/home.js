@@ -124,15 +124,8 @@ export default function HomePage() {
       setHoldings(allHoldings);
     } catch (error) {
       console.error('Error loading user data:', error);
-    } finally {
-      setRefreshing(false);
     }
   }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadUserData();
-  };
 
   const handleLogout = async () => {
     setShowMenu(false);
