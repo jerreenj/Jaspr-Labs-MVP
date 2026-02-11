@@ -63,6 +63,16 @@ class TransactionRecord(BaseModel):
     usd_value: float
     timestamp: int
 
+class GoogleAuthRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    picture: Optional[str] = None
+    google_id: Optional[str] = None
+
+class WaitlistEntry(BaseModel):
+    email: str
+    source: str = 'app'  # app, landing, etc.
+
 # Helper to convert ObjectId
 def serialize_doc(doc):
     if doc:
