@@ -113,12 +113,14 @@ export default function AuthPage() {
   const [existingAccount, setExistingAccount] = useState(null);
   const [checkingAccount, setCheckingAccount] = useState(true);
 
-  // Google Auth configuration
+  // Google Auth configuration - using Expo proxy for easier setup
   const [request, response, promptAsync] = Google.useAuthRequest({
     expoClientId: GOOGLE_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     webClientId: GOOGLE_CLIENT_ID,
+    // Use Expo's auth proxy - this provides the https:// redirect URI
+    useProxy: true,
   });
 
   // Handle Google Auth response
