@@ -107,27 +107,19 @@ export default function MarketsPage() {
       
       setTokens(pricesData);
     } catch (error) {
-      console.log('Using simulated prices (API unavailable)');
-      // Generate realistic simulated prices with small variations
+      console.log('Using stable fallback prices');
+      // Use stable fallback prices without random variations
       const fallbackData = TOKENS.map((token, index) => {
-        const basePrice = FALLBACK_PRICES[token.coingeckoId]?.usd || 1;
-        const baseChange = FALLBACK_PRICES[token.coingeckoId]?.usd_24h_change || 0;
-        
-        // Add small random variation to make it feel more dynamic (-1% to +1%)
-        const variation = 0.98 + Math.random() * 0.04;
-        const changeVariation = baseChange + (Math.random() - 0.5) * 2;
-        
         return {
           ...token,
           rank: index + 1,
-          price: basePrice * variation,
-          change24h: changeVariation,
+          price: FALLBACK_PRICES[token.coingeckoId]?.usd || 1,
+          change24h: FALLBACK_PRICES[token.coingeckoId]?.usd_24h_change || 0,
           isLive: false,
         };
       });
       setTokens(fallbackData);
     } finally {
-      setRefreshing(false);
       setLoading(false);
     }
   };
