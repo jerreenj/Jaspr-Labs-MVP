@@ -152,32 +152,42 @@ export default function AuthPage() {
     console.log('[AUTH] Starting Quick Start login...');
     
     try {
-      const wallet = await generateWallet();
-      console.log('[AUTH] Wallet created:', wallet.address);
+      // First check if we have an existing wallet
+      const existingAddress = await AsyncStorage.getItem('wallet_address');
+      let walletAddress = existingAddress;
       
-      // Create account on backend first
-      const backendResult = await syncAccountWithBackend(wallet.address);
+      if (!existingAddress) {
+        // Only create new wallet if none exists
+        const wallet = await generateWallet();
+        walletAddress = wallet.address;
+        await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
+        await AsyncStorage.setItem('wallet_address', wallet.address);
+        console.log('[AUTH] New wallet created:', wallet.address);
+      } else {
+        console.log('[AUTH] Using existing wallet:', existingAddress);
+      }
+      
+      // Create/restore account on backend
+      const backendResult = await syncAccountWithBackend(walletAddress);
       console.log('[AUTH] Backend result:', backendResult?.success ? 'synced' : 'offline mode');
       
-      // If backend returned existing account with data, use that
+      // Set default values
       let initialBalance = 10000;
       let holdings = {};
       let purchaseInfo = {};
       let swapCount = 0;
       let txHistory = [];
       
-      if (backendResult?.account && !backendResult.is_new) {
-        // Existing account - restore data
+      if (backendResult?.account) {
+        // Restore data from backend (whether new or existing)
         initialBalance = backendResult.account.balance || 10000;
         holdings = backendResult.account.holdings || {};
         purchaseInfo = backendResult.account.purchase_info || {};
         swapCount = backendResult.account.swap_count || 0;
         txHistory = backendResult.account.tx_history || [];
-        console.log('[AUTH] Restored existing account data');
+        console.log('[AUTH] Account data restored from backend');
       }
       
-      await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
-      await AsyncStorage.setItem('wallet_address', wallet.address);
       await AsyncStorage.setItem('username', 'User');
       await AsyncStorage.setItem('is_logged_in', 'true');
       await AsyncStorage.setItem('auth_provider', 'quickstart');
