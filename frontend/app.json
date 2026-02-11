@@ -5,12 +5,21 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "jasprlabs",
+    "scheme": "com.googleusercontent.apps.507679550025-qv1v0r7qhpgko37bumrkg682vb92keku",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jasprlabs.wallet"
+      "bundleIdentifier": "com.jasprlabs.wallet",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.507679550025-qv1v0r7qhpgko37bumrkg682vb92keku"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
