@@ -5,19 +5,47 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 
-// Optional ethers import for on-chain features (gracefully degrades if not available)
-let ethers = null;
-try {
-  ethers = require('ethers');
-} catch (e) {
-  console.log('ethers not available, on-chain features disabled');
-}
+// JasprChain API - replaces Base Sepolia/ethers
+const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
 
-const BASE_SEPOLIA_RPC = process.env.EXPO_PUBLIC_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
-const BASE_SEPOLIA_EXPLORER = process.env.EXPO_PUBLIC_BASE_EXPLORER || 'https://sepolia.basescan.org';
+// JasprChain helper functions
+const getJasprBalance = async (address) => {
+  try {
+    const response = await fetch(`${JASPR_CHAIN_API}/wallets/${address}/balance`);
+    if (!response.ok) return { balance: 0, balance_formatted: '0 JASPR' };
+    return await response.json();
+  } catch (error) {
+    console.log('[JASPR] Balance fetch error:', error.message);
+    return { balance: 0, balance_formatted: '0 JASPR' };
+  }
+};
+
+const sendJasprTransaction = async (sender, recipient, amount) => {
+  try {
+    const response = await fetch(`${JASPR_CHAIN_API}/transactions/transfer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender, recipient, amount: Math.floor(amount) }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.log('[JASPR] Transaction error:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+const getTransactionStatus = async (txHash) => {
+  try {
+    const response = await fetch(`${JASPR_CHAIN_API}/transactions/${txHash}`);
+    return await response.json();
+  } catch (error) {
+    return { status: 'unknown' };
+  }
+};
 
 // Token logos from CoinGecko
 const TOKEN_LOGOS = {
+  JASPR: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', // Placeholder
   BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
   ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
   SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
