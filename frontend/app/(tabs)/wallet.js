@@ -289,30 +289,18 @@ export default function WalletPage() {
       ]
     );
   };
-              'Private Key',
-              privateKey,
-              [
-                { text: 'Copy', onPress: () => Clipboard.setStringAsync(privateKey) },
-                { text: 'Done' }
-              ]
-            );
-          }
-        },
-      ]
-    );
-  };
 
   // Self-custodial wallet value (starts empty, only has deposited funds)
   const walletValue = Object.entries(walletHoldings).reduce((sum, [symbol, amount]) => {
-    if (symbol === 'USDC') return sum + amount;
+    if (symbol === 'USDC' || symbol === 'JASPR') return sum + amount;
     return sum + (amount * (prices[symbol] || 0));
   }, 0);
   
-  // On-chain ETH value
-  const onChainValue = parseFloat(onChainBalance) * prices.ETH;
+  // JasprChain native balance value
+  const jasprValue = jasprBalance * (prices.JASPR || 1);
 
   const getTokenColor = (symbol) => {
-    const colors = { USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
+    const colors = { JASPR: '#00C853', USDC: '#2775CA', ETH: '#627EEA', BTC: '#F7931A', SOL: '#00FFA3', USDT: '#50AF95', DAI: '#F5AC37' };
     return colors[symbol] || '#888';
   };
 
