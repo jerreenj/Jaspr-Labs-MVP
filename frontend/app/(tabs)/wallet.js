@@ -179,13 +179,12 @@ export default function WalletPage() {
       return;
     }
 
-    // Validate address (simple check if ethers not available)
-    const isValidAddress = ethers 
-      ? ethers.isAddress(recipientAddress)
-      : recipientAddress.startsWith('0x') && recipientAddress.length === 42;
+    // Validate JasprChain address (starts with jaspr1) or legacy 0x address
+    const isValidJasprAddress = recipientAddress.startsWith('jaspr1') && recipientAddress.length > 10;
+    const isValidLegacyAddress = recipientAddress.startsWith('0x') && recipientAddress.length === 42;
     
-    if (!isValidAddress) {
-      Alert.alert('Error', 'Invalid wallet address');
+    if (!isValidJasprAddress && !isValidLegacyAddress) {
+      Alert.alert('Error', 'Invalid wallet address. Use jaspr1... format');
       return;
     }
 
@@ -198,9 +197,41 @@ export default function WalletPage() {
     setSending(true);
 
     try {
-      // For demo tokens, simulate the withdrawal
-      if (withdrawToken !== 'ETH') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // For JASPR token, use JasprChain API
+      if (withdrawToken === 'JASPR' && walletAddress.startsWith('jaspr1')) {
+        const result = await sendJasprTransaction(walletAddress, recipientAddress, amount);
+        
+        if (result.success) {
+          // Update balances
+          const newTradingBalance = { ...tradingBalance };
+          newTradingBalance.JASPR -= amount;
+          setTradingBalance(newTradingBalance);
+          
+          // Save to history
+          const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
+          history.unshift({
+            type: 'send',
+            symbol: 'JASPR',
+            amount: amount,
+            to: recipientAddress,
+            timestamp: Date.now(),
+            txHash: result.tx_hash,
+            status: result.status || 'pending',
+          });
+          await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
+          
+          setShowWithdrawModal(false);
+          Alert.alert(
+            'Transaction Sent! 🎉',
+            `Sent ${amount} JASPR to\n${recipientAddress.slice(0, 12)}...${recipientAddress.slice(-6)}\n\nTx: ${result.tx_hash?.slice(0, 10)}...`,
+            [{ text: 'Done' }]
+          );
+        } else {
+          Alert.alert('Error', result.error || 'Transaction failed');
+        }
+      } else {
+        // For other demo tokens, simulate the withdrawal
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Update balances
         const newTradingBalance = { ...tradingBalance };
@@ -210,6 +241,7 @@ export default function WalletPage() {
           await AsyncStorage.setItem('demo_balance', newTradingBalance.USDC.toString());
         } else {
           const tokenHoldings = {
+            JASPR: newTradingBalance.JASPR,
             ETH: newTradingBalance.ETH,
             BTC: newTradingBalance.BTC,
             SOL: newTradingBalance.SOL,
@@ -225,7 +257,7 @@ export default function WalletPage() {
           amount: amount,
           to: recipientAddress,
           timestamp: Date.now(),
-          txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+          txHash: `jaspr_${Math.random().toString(36).slice(2, 15)}`,
           status: 'confirmed',
         });
         await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
@@ -235,25 +267,10 @@ export default function WalletPage() {
         
         Alert.alert(
           'Withdrawal Successful! 🎉',
-          `Sent ${amount} ${withdrawToken} to\n${recipientAddress.slice(0, 10)}...${recipientAddress.slice(-8)}`,
+          `Sent ${amount} ${withdrawToken} to\n${recipientAddress.slice(0, 12)}...${recipientAddress.slice(-6)}`,
           [{ text: 'View History', onPress: () => router.push('/(tabs)/history') }, { text: 'Done' }]
         );
-      } else {
-        // Real ETH withdrawal (requires ethers library)
-        if (!ethers) {
-          Alert.alert('Error', 'On-chain transactions not available in this build');
-          setSending(false);
-          return;
-        }
-        
-        if (parseFloat(onChainBalance) < amount) {
-          Alert.alert('Error', 'Insufficient on-chain ETH balance');
-          setSending(false);
-          return;
-        }
-
-        const provider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
-        const wallet = new ethers.Wallet(privateKey, provider);
+      }
         
         const tx = await wallet.sendTransaction({
           to: recipientAddress,
