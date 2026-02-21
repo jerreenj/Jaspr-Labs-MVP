@@ -4,37 +4,48 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
-// API base URL
+// API base URLs
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
 
-// Google OAuth Client IDs (you'll need to set these up in Google Cloud Console)
+// Google OAuth Client IDs
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
-// Generate a simple wallet address (for demo purposes)
-const generateWallet = async () => {
-  const randomBytes = await Crypto.getRandomBytesAsync(32);
-  const privateKeyHex = Array.from(new Uint8Array(randomBytes))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-  
-  const addressHash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    privateKeyHex
-  );
-  
-  return {
-    privateKey: '0x' + privateKeyHex,
-    address: '0x' + addressHash.slice(0, 40),
-  };
+// Create wallet using JasprChain API (replaces ethers.Wallet.createRandom())
+const createJasprWallet = async () => {
+  try {
+    const response = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    if (!response.ok) throw new Error('Failed to create wallet');
+    
+    const data = await response.json();
+    console.log('[JASPR] Wallet created:', data.address);
+    
+    return {
+      address: data.address, // jaspr1...
+      publicKey: data.public_key,
+    };
+  } catch (error) {
+    console.log('[JASPR] Wallet creation failed, using fallback');
+    // Fallback: generate local address with jaspr1 prefix
+    const randomId = Math.random().toString(36).substring(2, 15) + 
+                     Math.random().toString(36).substring(2, 15);
+    return {
+      address: 'jaspr1' + randomId.substring(0, 38),
+      publicKey: null,
+    };
+  }
 };
 
 // Sync account with backend
