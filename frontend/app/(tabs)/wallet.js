@@ -74,14 +74,13 @@ const TOKEN_LOGOS = {
 export default function WalletPage() {
   const router = useRouter();
   const [walletAddress, setWalletAddress] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
   const [walletHoldings, setWalletHoldings] = useState({}); // Self-custodial wallet (starts empty)
-  const [tradingBalance, setTradingBalance] = useState({ USDC: 10000, ETH: 0, BTC: 0, SOL: 0 }); // Trading account
-  const [prices, setPrices] = useState({ ETH: 3000, BTC: 90000, SOL: 130 });
-  const [onChainBalance, setOnChainBalance] = useState('0');
+  const [tradingBalance, setTradingBalance] = useState({ USDC: 10000, JASPR: 0, ETH: 0, BTC: 0, SOL: 0 }); // Trading account
+  const [prices, setPrices] = useState({ ETH: 3000, BTC: 90000, SOL: 130, JASPR: 1 });
+  const [jasprBalance, setJasprBalance] = useState(0); // JasprChain native balance
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
-  const [withdrawToken, setWithdrawToken] = useState('USDC');
+  const [withdrawToken, setWithdrawToken] = useState('JASPR');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [sending, setSending] = useState(false);
@@ -95,12 +94,10 @@ export default function WalletPage() {
   const loadWalletData = async () => {
     try {
       const address = await AsyncStorage.getItem('wallet_address');
-      const pk = await AsyncStorage.getItem('wallet_private_key');
       const demoBalance = await AsyncStorage.getItem('demo_balance');
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       
       setWalletAddress(address || '');
-      setPrivateKey(pk || '');
       
       const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
@@ -108,6 +105,7 @@ export default function WalletPage() {
       // Trading balance (for trading functionality)
       setTradingBalance({
         USDC: usdcBalance,
+        JASPR: tokenHoldings.JASPR || 0,
         ETH: tokenHoldings.ETH || 0,
         BTC: tokenHoldings.BTC || 0,
         SOL: tokenHoldings.SOL || 0,
@@ -117,14 +115,14 @@ export default function WalletPage() {
       const custodialHoldings = await AsyncStorage.getItem('wallet_holdings');
       setWalletHoldings(custodialHoldings ? JSON.parse(custodialHoldings) : {});
 
-      // Fetch on-chain ETH balance (optional - requires ethers)
-      if (address && ethers) {
+      // Fetch JasprChain balance (replaces ethers.getBalance)
+      if (address && address.startsWith('jaspr1')) {
         try {
-          const provider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
-          const balance = await provider.getBalance(address);
-          setOnChainBalance(ethers.formatEther(balance));
+          const balanceData = await getJasprBalance(address);
+          setJasprBalance(balanceData.balance || 0);
+          console.log('[JASPR] Balance:', balanceData.balance_formatted);
         } catch (e) {
-          console.log('Could not fetch on-chain balance');
+          console.log('Could not fetch JasprChain balance');
         }
       }
 
