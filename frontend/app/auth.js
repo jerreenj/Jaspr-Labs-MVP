@@ -249,19 +249,22 @@ export default function AuthPage() {
 
   const handleQuickStart = async () => {
     setLoading(true);
-    console.log('[AUTH] Starting Quick Start login...');
+    console.log('[AUTH] Starting Quick Start login with JasprChain...');
     
     try {
       // Check for existing wallet
       const existingAddress = await AsyncStorage.getItem('wallet_address');
       let walletAddress = existingAddress;
       
-      if (!existingAddress) {
-        const wallet = await generateWallet();
+      if (!existingAddress || !existingAddress.startsWith('jaspr1')) {
+        // Create new JasprChain wallet
+        const wallet = await createJasprWallet();
         walletAddress = wallet.address;
-        await AsyncStorage.setItem('wallet_private_key', wallet.privateKey);
         await AsyncStorage.setItem('wallet_address', wallet.address);
-        console.log('[AUTH] New wallet created:', wallet.address);
+        if (wallet.publicKey) {
+          await AsyncStorage.setItem('wallet_public_key', wallet.publicKey);
+        }
+        console.log('[AUTH] New JasprChain wallet created:', wallet.address);
       } else {
         console.log('[AUTH] Using existing wallet:', existingAddress);
       }
