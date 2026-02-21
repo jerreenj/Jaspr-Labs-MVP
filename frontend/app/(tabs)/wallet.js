@@ -271,34 +271,6 @@ export default function WalletPage() {
           [{ text: 'View History', onPress: () => router.push('/(tabs)/history') }, { text: 'Done' }]
         );
       }
-        
-        const tx = await wallet.sendTransaction({
-          to: recipientAddress,
-          value: ethers.parseEther(withdrawAmount),
-        });
-        
-        Alert.alert('Transaction Sent!', `TX Hash: ${tx.hash.slice(0, 20)}...\n\nWaiting for confirmation...`);
-        
-        await tx.wait();
-        
-        // Save to history
-        const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
-        history.unshift({
-          type: 'send',
-          symbol: 'ETH',
-          amount: amount,
-          to: recipientAddress,
-          timestamp: Date.now(),
-          txHash: tx.hash,
-          status: 'confirmed',
-        });
-        await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
-        
-        setShowWithdrawModal(false);
-        loadWalletData();
-        
-        Alert.alert('Success! 🎉', `Sent ${amount} ETH\nTX: ${tx.hash.slice(0, 20)}...`);
-      }
     } catch (error) {
       console.error('Withdraw error:', error);
       Alert.alert('Error', 'Transaction failed: ' + error.message);
@@ -309,15 +281,14 @@ export default function WalletPage() {
 
   const handleExportKey = () => {
     Alert.alert(
-      '⚠️ Export Private Key',
-      'Your private key gives FULL control of your wallet. Never share it with anyone!\n\nAnyone with your key can steal your funds.',
+      '⚠️ Wallet Address',
+      `Your JasprChain wallet address:\n\n${walletAddress}\n\nThis is your public address on JasprChain.`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'I Understand, Show Key', 
-          style: 'destructive', 
-          onPress: () => {
-            Alert.alert(
+        { text: 'Copy Address', onPress: () => Clipboard.setStringAsync(walletAddress) },
+        { text: 'OK' }
+      ]
+    );
+  };
               'Private Key',
               privateKey,
               [
