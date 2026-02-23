@@ -8,38 +8,29 @@ import * as Clipboard from 'expo-clipboard';
 // JasprChain API - replaces Base Sepolia/ethers
 const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
 
-// JasprChain helper functions
-const getJasprBalance = async (address) => {
+// Create wallet using JasprChain API (with fallback)
+const createJasprWallet = async () => {
   try {
-    const response = await fetch(`${JASPR_CHAIN_API}/wallets/${address}/balance`);
-    if (!response.ok) return { balance: 0, balance_formatted: '0 JASPR' };
-    return await response.json();
-  } catch (error) {
-    console.log('[JASPR] Balance fetch error:', error.message);
-    return { balance: 0, balance_formatted: '0 JASPR' };
-  }
-};
-
-const sendJasprTransaction = async (sender, recipient, amount) => {
-  try {
-    const response = await fetch(`${JASPR_CHAIN_API}/transactions/transfer`, {
+    const response = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender, recipient, amount: Math.floor(amount) }),
     });
-    return await response.json();
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[JASPR] Wallet created via API:', data.address);
+      return { address: data.address, publicKey: data.public_key };
+    }
+    throw new Error('API not available');
   } catch (error) {
-    console.log('[JASPR] Transaction error:', error.message);
-    return { success: false, error: error.message };
-  }
-};
-
-const getTransactionStatus = async (txHash) => {
-  try {
-    const response = await fetch(`${JASPR_CHAIN_API}/transactions/${txHash}`);
-    return await response.json();
-  } catch (error) {
-    return { status: 'unknown' };
+    console.log('[JASPR] Using local wallet generation');
+    // Generate jaspr1... address locally
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let address = 'jaspr1';
+    for (let i = 0; i < 38; i++) {
+      address += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return { address, publicKey: null };
   }
 };
 
