@@ -413,14 +413,14 @@ export default function WalletPage() {
           {/* Wallet Assets (Self-Custodial) */}
           <Text style={styles.sectionTitle}>Wallet Assets</Text>
           <View style={styles.assetsList}>
-            {walletHoldingsArray.length > 0 || parseFloat(onChainBalance) > 0 ? (
+            {walletHoldingsArray.length > 0 || jasprBalance > 0 ? (
               <>
-                {parseFloat(onChainBalance) > 0 && (
+                {jasprBalance > 0 && (
                   <AssetItem 
-                    symbol="ETH" 
-                    amount={parseFloat(onChainBalance)} 
-                    value={onChainValue}
-                    onPress={() => handleWithdraw('ETH')}
+                    symbol="JASPR" 
+                    amount={jasprBalance} 
+                    value={jasprBalance * (prices.JASPR || 1)}
+                    onPress={() => handleWithdraw('JASPR')}
                   />
                 )}
                 {walletHoldingsArray.map(({ symbol, amount, value }) => (
