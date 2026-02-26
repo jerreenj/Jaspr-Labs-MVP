@@ -8,7 +8,7 @@ import * as Clipboard from 'expo-clipboard';
 // JasprChain API - LIVE on jasprlabs.cloud
 const JASPR_CHAIN_API = 'https://www.jasprlabs.cloud/api';
 
-// Create wallet using JasprChain API (with fallback)
+// Create wallet using JasprChain API
 const createJasprWallet = async () => {
   try {
     const response = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
@@ -18,12 +18,18 @@ const createJasprWallet = async () => {
     
     if (response.ok) {
       const data = await response.json();
-      console.log('[JASPR] Wallet created via API:', data.address);
-      return { address: data.address, publicKey: data.public_key };
+      console.log('[JASPR] Wallet created:', data.address, '- Type:', data.type);
+      return { 
+        address: data.address, 
+        publicKey: data.public_key,
+        type: data.type,
+        threshold: data.threshold
+      };
     }
-    throw new Error('API not available');
+    throw new Error('Failed to create wallet');
   } catch (error) {
-    console.log('[JASPR] Using local wallet generation');
+    console.log('[JASPR] Wallet creation error:', error.message);
+    // Fallback - generate local address
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     let address = 'jaspr1';
     for (let i = 0; i < 38; i++) {
@@ -33,14 +39,25 @@ const createJasprWallet = async () => {
   }
 };
 
-// Get JasprChain balance
+// Get JasprChain balance - returns balance in JASPR (not smallest unit)
 const getJasprBalance = async (address) => {
   try {
     const response = await fetch(`${JASPR_CHAIN_API}/wallets/${address}/balance`);
-    if (response.ok) return await response.json();
-    return { balance: 0, balance_formatted: '0 JASPR' };
+    if (response.ok) {
+      const data = await response.json();
+      // Balance is in smallest units, convert to JASPR (divide by 10^9)
+      const balanceJaspr = data.balance / 1000000000;
+      console.log('[JASPR] Balance:', balanceJaspr, 'JASPR');
+      return { 
+        balance: balanceJaspr, 
+        balance_formatted: data.balance_formatted,
+        raw_balance: data.balance
+      };
+    }
+    return { balance: 0, balance_formatted: '0 JASPR', raw_balance: 0 };
   } catch (error) {
-    return { balance: 0, balance_formatted: '0 JASPR' };
+    console.log('[JASPR] Balance error:', error.message);
+    return { balance: 0, balance_formatted: '0 JASPR', raw_balance: 0 };
   }
 };
 
@@ -50,13 +67,21 @@ const sendJasprTransaction = async (sender, recipient, amount) => {
     const response = await fetch(`${JASPR_CHAIN_API}/transactions/transfer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender, recipient, amount: Math.floor(amount) }),
+      body: JSON.stringify({ 
+        sender, 
+        recipient, 
+        amount: Math.floor(amount) // JASPR uses whole numbers
+      }),
     });
-    if (response.ok) return await response.json();
-    return { success: true, tx_hash: `jaspr_${Date.now()}`, status: 'simulated' };
+    const data = await response.json();
+    if (response.ok) {
+      console.log('[JASPR] Transaction sent:', data.tx_hash);
+      return { success: true, ...data };
+    }
+    return { success: false, error: data.detail || 'Transaction failed' };
   } catch (error) {
-    // Simulate success for demo
-    return { success: true, tx_hash: `jaspr_${Date.now()}`, status: 'simulated' };
+    console.log('[JASPR] Transaction error:', error.message);
+    return { success: false, error: error.message };
   }
 };
 
