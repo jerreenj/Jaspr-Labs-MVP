@@ -461,7 +461,7 @@ export default function WalletPage() {
           <View style={styles.warningCard}>
             <MaterialCommunityIcons name="shield-check" size={20} color="#888" />
             <Text style={styles.warningText}>
-              Self-custodial wallet linked to MetaMask. You control your private keys. Never share them.
+              Self-custodial JasprChain wallet. You control your assets on the JasprChain network.
             </Text>
           </View>
         </View>
