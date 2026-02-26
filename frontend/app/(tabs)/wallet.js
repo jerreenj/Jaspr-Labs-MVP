@@ -513,7 +513,7 @@ export default function WalletPage() {
             <View style={styles.depositInfo}>
               <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF9800" />
               <Text style={styles.depositInfoText}>
-                Network: Base Sepolia Testnet{'\n'}Only send test tokens to this address
+                Network: JasprChain{'\n'}Send JASPR tokens to this address
               </Text>
             </View>
 
