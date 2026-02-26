@@ -42,22 +42,35 @@ const createJasprWallet = async () => {
 // Get JasprChain balance - returns balance in JASPR (not smallest unit)
 const getJasprBalance = async (address) => {
   try {
-    const response = await fetch(`${JASPR_CHAIN_API}/wallets/${address}/balance`);
+    console.log('[JASPR] Fetching balance for:', address);
+    const response = await fetch(`${JASPR_CHAIN_API}/wallets/${address}/balance`, {
+      method: 'GET',
+      headers: { 
+        'Accept': 'application/json',
+      },
+    });
+    
+    console.log('[JASPR] Balance response status:', response.status);
+    
     if (response.ok) {
       const data = await response.json();
-      // Balance is in smallest units, convert to JASPR (divide by 10^9)
+      console.log('[JASPR] Raw balance data:', JSON.stringify(data));
+      // Balance is in smallest units (10^9), convert to JASPR
       const balanceJaspr = data.balance / 1000000000;
-      console.log('[JASPR] Balance:', balanceJaspr, 'JASPR');
+      console.log('[JASPR] Converted balance:', balanceJaspr, 'JASPR');
       return { 
         balance: balanceJaspr, 
         balance_formatted: data.balance_formatted,
         raw_balance: data.balance
       };
     }
+    console.log('[JASPR] Balance request failed:', response.status);
     return { balance: 0, balance_formatted: '0 JASPR', raw_balance: 0 };
   } catch (error) {
-    console.log('[JASPR] Balance error:', error.message);
+    console.log('[JASPR] Balance fetch error:', error.message);
     return { balance: 0, balance_formatted: '0 JASPR', raw_balance: 0 };
+  }
+};
   }
 };
 
