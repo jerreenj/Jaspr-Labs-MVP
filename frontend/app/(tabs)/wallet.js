@@ -5,8 +5,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 
-// JasprChain API - replaces Base Sepolia/ethers
-const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
+// JasprChain API - LIVE on jasprlabs.cloud
+const JASPR_CHAIN_API = 'https://www.jasprlabs.cloud/api';
 
 // Create wallet using JasprChain API (with fallback)
 const createJasprWallet = async () => {
