@@ -385,14 +385,22 @@ export default function WalletPage() {
             </Text>
           </View>
 
-          {/* On-Chain Balance */}
-          {jasprBalance > 0 && (
-            <View style={styles.onChainCard}>
-              <Image source={{ uri: TOKEN_LOGOS.JASPR }} style={styles.onChainLogo} />
-              <Text style={styles.onChainLabel}>JasprChain Balance:</Text>
-              <Text style={styles.onChainValue}>{jasprBalance.toFixed(2)} JASPR</Text>
+          {/* On-Chain JasprChain Balance - Always show */}
+          <View style={styles.onChainCard}>
+            <View style={styles.onChainIcon}>
+              <MaterialCommunityIcons name="cube-outline" size={24} color="#00C853" />
             </View>
-          )}
+            <View style={styles.onChainInfo}>
+              <Text style={styles.onChainLabel}>JasprChain Balance</Text>
+              <Text style={styles.onChainValue}>{jasprBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} JASPR</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.refreshBtn}
+              onPress={loadWalletData}
+            >
+              <MaterialCommunityIcons name="refresh" size={20} color="#00C853" />
+            </TouchableOpacity>
+          </View>
 
           {/* Wallet Address */}
           <View style={styles.addressCard}>
