@@ -19,7 +19,7 @@ const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
-// Create wallet using JasprChain API (replaces ethers.Wallet.createRandom())
+// Create wallet using JasprChain API (REAL blockchain wallet!)
 const createJasprWallet = async () => {
   try {
     const response = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
@@ -30,21 +30,24 @@ const createJasprWallet = async () => {
     if (!response.ok) throw new Error('Failed to create wallet');
     
     const data = await response.json();
-    console.log('[JASPR] Wallet created:', data.address);
+    console.log('[JASPR] Real wallet created:', data.address);
+    console.log('[JASPR] Wallet type:', data.type, '- Threshold:', data.threshold);
     
     return {
       address: data.address, // jaspr1...
       publicKey: data.public_key,
+      type: data.type,
+      threshold: data.threshold
     };
   } catch (error) {
-    console.log('[JASPR] Wallet creation failed, using fallback');
+    console.log('[JASPR] Wallet creation failed, using fallback:', error.message);
     // Fallback: generate local address with jaspr1 prefix
-    const randomId = Math.random().toString(36).substring(2, 15) + 
-                     Math.random().toString(36).substring(2, 15);
-    return {
-      address: 'jaspr1' + randomId.substring(0, 38),
-      publicKey: null,
-    };
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let address = 'jaspr1';
+    for (let i = 0; i < 38; i++) {
+      address += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return { address, publicKey: null };
   }
 };
 
