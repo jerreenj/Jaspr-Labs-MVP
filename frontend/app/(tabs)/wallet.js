@@ -361,11 +361,11 @@ export default function WalletPage() {
           </View>
 
           {/* On-Chain Balance */}
-          {parseFloat(onChainBalance) > 0 && (
+          {jasprBalance > 0 && (
             <View style={styles.onChainCard}>
-              <Image source={{ uri: TOKEN_LOGOS.ETH }} style={styles.onChainLogo} />
-              <Text style={styles.onChainLabel}>On-Chain ETH:</Text>
-              <Text style={styles.onChainValue}>{parseFloat(onChainBalance).toFixed(6)} ETH</Text>
+              <Image source={{ uri: TOKEN_LOGOS.JASPR }} style={styles.onChainLogo} />
+              <Text style={styles.onChainLabel}>JasprChain Balance:</Text>
+              <Text style={styles.onChainValue}>{jasprBalance.toFixed(2)} JASPR</Text>
             </View>
           )}
 
