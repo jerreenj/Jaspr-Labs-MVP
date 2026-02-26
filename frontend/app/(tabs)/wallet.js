@@ -71,8 +71,6 @@ const getJasprBalance = async (address) => {
     return { balance: 0, balance_formatted: '0 JASPR', raw_balance: 0 };
   }
 };
-  }
-};
 
 // Send JasprChain transaction
 const sendJasprTransaction = async (sender, recipient, amount) => {
