@@ -336,18 +336,18 @@ export default function WalletPage() {
       <ScrollView style={styles.scroll}>
         <View style={styles.content}>
           <Text style={styles.title}>Wallet</Text>
-          <Text style={styles.subtitle}>Self-Custodial • Linked to MetaMask</Text>
+          <Text style={styles.subtitle}>Self-Custodial • JasprChain</Text>
 
           {/* Self-Custodial Wallet Balance Card */}
           <View style={styles.balanceCard}>
             <View style={styles.balanceGradient}>
               <Text style={styles.balanceLabel}>Wallet Balance</Text>
               <Text style={styles.balance}>
-                ${(walletValue + onChainValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${(walletValue + jasprValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
               <View style={styles.networkBadge}>
                 <View style={styles.dot} />
-                <Text style={styles.networkText}>Base Sepolia • Self-Custodial</Text>
+                <Text style={styles.networkText}>JasprChain • Self-Custodial</Text>
               </View>
             </View>
           </View>
