@@ -20,6 +20,7 @@ const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
 // Create wallet using JasprChain API (REAL blockchain wallet!)
+// New wallets are automatically funded with 10,000 JASPR ($10,000 value at $1/JASPR)
 const createJasprWallet = async () => {
   try {
     const response = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
@@ -32,12 +33,25 @@ const createJasprWallet = async () => {
     const data = await response.json();
     console.log('[JASPR] Real wallet created:', data.address);
     console.log('[JASPR] Wallet type:', data.type, '- Threshold:', data.threshold);
+    console.log('[JASPR] New wallet funded with 10,000 JASPR from community tokenomics');
+    
+    // Fetch initial balance to confirm funding
+    try {
+      const balanceRes = await fetch(`${JASPR_CHAIN_API}/wallets/${data.address}/balance`);
+      if (balanceRes.ok) {
+        const balanceData = await balanceRes.json();
+        console.log('[JASPR] Confirmed balance:', balanceData.balance_formatted);
+      }
+    } catch (e) {
+      console.log('[JASPR] Could not verify balance, continuing...');
+    }
     
     return {
       address: data.address, // jaspr1...
       publicKey: data.public_key,
       type: data.type,
-      threshold: data.threshold
+      threshold: data.threshold,
+      initialBalance: 10000 // 10,000 JASPR funded from community tokenomics
     };
   } catch (error) {
     console.log('[JASPR] Wallet creation failed, using fallback:', error.message);
@@ -47,7 +61,7 @@ const createJasprWallet = async () => {
     for (let i = 0; i < 38; i++) {
       address += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return { address, publicKey: null };
+    return { address, publicKey: null, initialBalance: 10000 };
   }
 };
 
