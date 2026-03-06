@@ -504,7 +504,17 @@ export default function TradePage() {
         setSwapCount(currentCount + 1);
       }
       
-      // Save to history
+      // Record transaction on JasprChain and get tx_hash
+      const walletAddress = await AsyncStorage.getItem('wallet_address');
+      const chainResult = await recordOnChain(
+        walletAddress,
+        mode.toLowerCase(),
+        symbol,
+        mode === 'BUY' ? tokensBought : inputAmount,
+        price
+      );
+      
+      // Save to history with JasprChain tx_hash
       const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
       history.unshift({
         type: mode.toLowerCase(),
@@ -513,7 +523,9 @@ export default function TradePage() {
         price,
         usdValue,
         timestamp: Date.now(),
-        txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+        txHash: chainResult.tx_hash,
+        status: chainResult.status,
+        chain: 'JasprChain',
       });
       await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
       
