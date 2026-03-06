@@ -9,52 +9,6 @@ import Constants from 'expo-constants';
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const JASPR_CHAIN_API = 'https://www.jasprlabs.cloud/api';
 
-// Treasury wallet for swap operations
-const JASPR_TREASURY = 'jaspr1treasury000000000000000000000000000000000';
-
-// Execute REAL on-chain swap transaction on JasprChain
-const executeOnChainSwap = async (walletAddress, fromSymbol, toSymbol, fromAmount, toAmount, usdValue) => {
-  try {
-    // Calculate JASPR amount for on-chain record (1 JASPR = $1)
-    const jasprAmount = Math.max(1, Math.floor(usdValue));
-    
-    console.log(`[JASPR] Executing on-chain swap: ${fromAmount} ${fromSymbol} → ${toAmount} ${toSymbol}`);
-    console.log(`[JASPR] Recording as ${jasprAmount} JASPR transfer`);
-    
-    // Execute real blockchain transfer to record the swap
-    const response = await fetch(`${JASPR_CHAIN_API}/transactions/transfer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sender: walletAddress,
-        recipient: JASPR_TREASURY,
-        amount: jasprAmount
-      }),
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[JASPR] ✅ ON-CHAIN SWAP TX CONFIRMED!');
-      console.log('[JASPR] tx_hash:', data.tx_hash);
-      
-      return { 
-        success: true, 
-        tx_hash: data.tx_hash, 
-        status: data.status || 'confirmed',
-        chain: 'JasprChain',
-        onChain: true
-      };
-    }
-    
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Transfer failed');
-    
-  } catch (error) {
-    console.log('[JASPR] On-chain swap error:', error.message);
-    return { success: false, error: error.message, tx_hash: null };
-  }
-};
-
 // Sync account data to backend
 const syncToBackend = async () => {
   try {
