@@ -485,7 +485,7 @@ export default function SwapPage() {
               <Text style={styles.detailLabel}>Network</Text>
               <View style={styles.networkBadge}>
                 <View style={styles.networkDot} />
-                <Text style={styles.networkText}>Base Sepolia</Text>
+                <Text style={styles.networkText}>JasprChain</Text>
               </View>
             </View>
           </View>
