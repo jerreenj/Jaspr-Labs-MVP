@@ -485,26 +485,56 @@ export default function TradePage() {
     setLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const walletAddress = await AsyncStorage.getItem('wallet_address');
       
-      const holdings = await AsyncStorage.getItem('token_holdings');
-      const tokenHoldings = holdings ? JSON.parse(holdings) : {};
-      
-      let newBalance = balance;
-      let newHolding = tokenHoldings[symbol] || 0;
+      // Calculate trade values
       let tokensBought = 0;
       let usdValue = 0;
       
       if (mode === 'BUY') {
         tokensBought = inputAmount / price;
-        newBalance = balance - inputAmount;
-        newHolding = newHolding + tokensBought;
         usdValue = inputAmount;
       } else {
         usdValue = inputAmount * price;
+        tokensBought = inputAmount;
+      }
+      
+      // Execute REAL on-chain transaction on JasprChain
+      console.log('[TRADE] Executing real on-chain transaction...');
+      const chainResult = await executeOnChainTransaction(
+        walletAddress,
+        mode.toLowerCase(),
+        symbol,
+        mode === 'BUY' ? tokensBought : inputAmount,
+        usdValue
+      );
+      
+      // Check if on-chain transaction succeeded
+      if (!chainResult.success) {
+        Alert.alert(
+          'Transaction Failed', 
+          `On-chain transaction failed: ${chainResult.error}\n\nPlease check your JasprChain balance.`,
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[TRADE] ✅ On-chain transaction confirmed:', chainResult.tx_hash);
+      
+      // Update local state after successful on-chain transaction
+      const holdings = await AsyncStorage.getItem('token_holdings');
+      const tokenHoldings = holdings ? JSON.parse(holdings) : {};
+      
+      let newBalance = balance;
+      let newHolding = tokenHoldings[symbol] || 0;
+      
+      if (mode === 'BUY') {
+        newBalance = balance - inputAmount;
+        newHolding = newHolding + tokensBought;
+      } else {
         newBalance = balance + usdValue;
         newHolding = newHolding - inputAmount;
-        tokensBought = inputAmount;
       }
       
       if (!isFinite(newHolding)) newHolding = 0;
@@ -543,17 +573,7 @@ export default function TradePage() {
         setSwapCount(currentCount + 1);
       }
       
-      // Record transaction on JasprChain and get tx_hash
-      const walletAddress = await AsyncStorage.getItem('wallet_address');
-      const chainResult = await recordOnChain(
-        walletAddress,
-        mode.toLowerCase(),
-        symbol,
-        mode === 'BUY' ? tokensBought : inputAmount,
-        price
-      );
-      
-      // Save to history with JasprChain tx_hash
+      // Save to history with REAL JasprChain tx_hash
       const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
       history.unshift({
         type: mode.toLowerCase(),
@@ -562,9 +582,11 @@ export default function TradePage() {
         price,
         usdValue,
         timestamp: Date.now(),
-        txHash: chainResult.tx_hash,
+        txHash: chainResult.tx_hash, // REAL on-chain tx_hash!
         status: chainResult.status,
         chain: 'JasprChain',
+        onChain: true,
+        explorerUrl: `https://www.jasprlabs.cloud/explorer/tx/${chainResult.tx_hash}`,
       });
       await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
       
@@ -578,7 +600,7 @@ export default function TradePage() {
       const bonusText = currentCount < 10 ? '\n\n🎁 +$5 Trade Reward!' : '';
       Alert.alert(
         `${mode === 'BUY' ? '✅ Bought' : '✅ Sold'} ${symbol}`,
-        `${mode === 'BUY' ? 'Received' : 'Sold'}: ${mode === 'BUY' ? tokensBought.toFixed(8) : inputAmount} ${symbol}\nValue: $${usdValue.toFixed(2)}${bonusText}`,
+        `${mode === 'BUY' ? 'Received' : 'Sold'}: ${mode === 'BUY' ? tokensBought.toFixed(8) : inputAmount} ${symbol}\nValue: $${usdValue.toFixed(2)}\n\n🔗 JasprChain TX:\n${chainResult.tx_hash.slice(0, 16)}...${bonusText}`,
         [{ text: 'Done' }]
       );
     } catch (error) {
