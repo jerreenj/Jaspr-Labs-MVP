@@ -280,18 +280,26 @@ export default function HomePage() {
                       </View>
                       <View style={styles.activityContent}>
                         <Text style={styles.activityTitle}>
-                          {trade.type === 'buy' ? 'Bought' : trade.type === 'sell' ? 'Sold' : 'Swapped'} {trade.symbol || trade.toToken}
+                          {trade.type === 'buy' ? 'Bought' : trade.type === 'sell' ? 'Sold' : 'Swapped'} {trade.symbol || `${trade.fromSymbol}→${trade.toSymbol}`}
                         </Text>
                         <Text style={styles.activityTime}>
                           {new Date(trade.timestamp).toLocaleDateString()}
+                          {trade.txHash && trade.onChain && (
+                            <Text style={styles.txHashText}> • 🔗 {trade.txHash.slice(0, 8)}...</Text>
+                          )}
                         </Text>
                       </View>
-                      <Text style={[
-                        styles.activityAmount,
-                        { color: trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0' }
-                      ]}>
-                        {trade.type === 'buy' ? '-' : '+'}${trade.usdAmount?.toFixed(2) || '0.00'}
-                      </Text>
+                      <View style={styles.activityRight}>
+                        <Text style={[
+                          styles.activityAmount,
+                          { color: trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0' }
+                        ]}>
+                          {trade.type === 'buy' ? '-' : '+'}${(trade.usdValue || trade.usdAmount || 0).toFixed(2)}
+                        </Text>
+                        {trade.onChain && (
+                          <Text style={styles.onChainBadge}>On-Chain</Text>
+                        )}
+                      </View>
                     </View>
                   ))}
                 </View>
