@@ -264,11 +264,36 @@ export default function SwapPage() {
     setLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      const walletAddress = await AsyncStorage.getItem('wallet_address');
       const outputAmount = calculateOutput();
+      const fromPrice = prices[fromToken.symbol] || 1;
+      const usdValue = inputAmount * fromPrice;
       
-      // Update balances
+      // Execute REAL on-chain transaction on JasprChain
+      console.log('[SWAP] Executing real on-chain swap...');
+      const chainResult = await executeOnChainSwap(
+        walletAddress,
+        fromToken.symbol,
+        toToken.symbol,
+        inputAmount,
+        outputAmount,
+        usdValue
+      );
+      
+      // Check if on-chain transaction succeeded
+      if (!chainResult.success) {
+        Alert.alert(
+          'Swap Failed', 
+          `On-chain transaction failed: ${chainResult.error}\n\nPlease check your JasprChain balance.`,
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[SWAP] ✅ On-chain swap confirmed:', chainResult.tx_hash);
+      
+      // Update local balances after successful on-chain transaction
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
@@ -312,7 +337,7 @@ export default function SwapPage() {
         bonusText = '\n\n🎁 +$5 Trade Reward!';
       }
       
-      // Save to history
+      // Save to history with REAL JasprChain tx_hash
       const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
       history.unshift({
         type: 'swap',
@@ -320,8 +345,13 @@ export default function SwapPage() {
         toSymbol: toToken.symbol,
         fromAmount: inputAmount,
         toAmount: outputAmount,
+        usdValue: usdValue,
         timestamp: Date.now(),
-        txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+        txHash: chainResult.tx_hash, // REAL on-chain tx_hash!
+        status: chainResult.status,
+        chain: 'JasprChain',
+        onChain: true,
+        explorerUrl: `https://www.jasprlabs.cloud/explorer/tx/${chainResult.tx_hash}`,
       });
       await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
       
@@ -333,7 +363,7 @@ export default function SwapPage() {
       
       Alert.alert(
         '✅ Swap Complete',
-        `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}${bonusText}`,
+        `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}\n\n🔗 JasprChain TX:\n${chainResult.tx_hash.slice(0, 16)}...${bonusText}`,
         [{ text: 'Done' }]
       );
     } catch (error) {
