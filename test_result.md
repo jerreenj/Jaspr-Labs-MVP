@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the JASPR crypto wallet backend API thoroughly"
+user_problem_statement: "Test the JASPR crypto wallet backend API thoroughly - Now migrated to JasprChain for on-chain transactions"
 
 backend:
   - task: "Health Check Endpoint"
@@ -188,6 +188,18 @@ backend:
         - working: true
           agent: "testing"
           comment: "Additional endpoints tested: /api/accounts/recent works correctly (returns recent accounts). Note: /health endpoint returns 404 (only /api/health works)."
+
+  - task: "JasprChain Integration"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/trade.js, swap.js, wallet.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "COMPLETED - All trading and swapping now executes real on-chain transactions on JasprChain. Wallet creation returns funded wallets with 10,000 JASPR. Real tx_hash displayed in dashboard."
 
 frontend:
   # Frontend testing not performed as per instructions
