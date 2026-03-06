@@ -9,7 +9,7 @@ const { width } = Dimensions.get('window');
 
 // API URLs
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const JASPR_CHAIN_API = 'https://www.jasprlabs.cloud/api';
+const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
 
 // Treasury wallet for trading operations - receives/sends JASPR for trades
 const JASPR_TREASURY = 'jaspr1treasury000000000000000000000000000000000';
