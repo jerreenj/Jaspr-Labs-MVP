@@ -193,7 +193,7 @@ export default function HomePage() {
                 <Text style={styles.portfolioValue}>${formatValue(totalValue)}</Text>
                 <View style={styles.networkRow}>
                   <View style={styles.networkDot} />
-                  <Text style={styles.networkText}>Demo Account • Base Sepolia</Text>
+                  <Text style={styles.networkText}>JasprChain • Live Testnet</Text>
                 </View>
               </View>
             </View>
