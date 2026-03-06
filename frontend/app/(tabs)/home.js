@@ -598,6 +598,9 @@ const styles = StyleSheet.create({
   activityTitle: { fontSize: 15, fontWeight: '600', color: '#FFF' },
   activityTime: { fontSize: 12, color: '#666', marginTop: 2 },
   activityAmount: { fontSize: 15, fontWeight: '700' },
+  activityRight: { alignItems: 'flex-end' },
+  txHashText: { color: '#00C853', fontSize: 10 },
+  onChainBadge: { fontSize: 9, color: '#00C853', marginTop: 2, backgroundColor: 'rgba(0,200,83,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
   statCard: {
     flex: 1,
