@@ -218,43 +218,17 @@ export default function SwapPage() {
     setLoading(true);
 
     try {
-      const walletAddress = await AsyncStorage.getItem('wallet_address');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const outputAmount = calculateOutput();
-      const fromPrice = prices[fromToken.symbol] || 1;
-      const usdValue = inputAmount * fromPrice;
       
-      // Execute REAL on-chain transaction on JasprChain
-      console.log('[SWAP] Executing real on-chain swap...');
-      const chainResult = await executeOnChainSwap(
-        walletAddress,
-        fromToken.symbol,
-        toToken.symbol,
-        inputAmount,
-        outputAmount,
-        usdValue
-      );
-      
-      // Check if on-chain transaction succeeded
-      if (!chainResult.success) {
-        Alert.alert(
-          'Swap Failed', 
-          `On-chain transaction failed: ${chainResult.error}\n\nPlease check your JasprChain balance.`,
-          [{ text: 'OK' }]
-        );
-        setLoading(false);
-        return;
-      }
-      
-      console.log('[SWAP] ✅ On-chain swap confirmed:', chainResult.tx_hash);
-      
-      // Update local balances after successful on-chain transaction
+      // Update balances
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
       let newFromBalance, newToBalance;
       
       if (fromToken.symbol === 'USDC') {
-        // Swapping from USDC
         const currentUSDC = await AsyncStorage.getItem('demo_balance');
         newFromBalance = parseFloat(currentUSDC || '10000') - inputAmount;
         await AsyncStorage.setItem('demo_balance', newFromBalance.toString());
@@ -262,7 +236,6 @@ export default function SwapPage() {
         newToBalance = (tokenHoldings[toToken.symbol] || 0) + outputAmount;
         tokenHoldings[toToken.symbol] = newToBalance;
       } else if (toToken.symbol === 'USDC') {
-        // Swapping to USDC
         newFromBalance = (tokenHoldings[fromToken.symbol] || 0) - inputAmount;
         tokenHoldings[fromToken.symbol] = newFromBalance > 0.00000001 ? newFromBalance : 0;
         
@@ -270,7 +243,6 @@ export default function SwapPage() {
         newToBalance = parseFloat(currentUSDC || '10000') + outputAmount;
         await AsyncStorage.setItem('demo_balance', newToBalance.toString());
       } else {
-        // Cross-token swap
         newFromBalance = (tokenHoldings[fromToken.symbol] || 0) - inputAmount;
         tokenHoldings[fromToken.symbol] = newFromBalance > 0.00000001 ? newFromBalance : 0;
         
@@ -280,7 +252,7 @@ export default function SwapPage() {
       
       await AsyncStorage.setItem('token_holdings', JSON.stringify(tokenHoldings));
       
-      // Trade rewards (first 10 trades get $5 bonus)
+      // Trade rewards
       let bonusText = '';
       if (swapCount < 10) {
         let usdcBalance = parseFloat(await AsyncStorage.getItem('demo_balance') || '10000');
@@ -291,7 +263,7 @@ export default function SwapPage() {
         bonusText = '\n\n🎁 +$5 Trade Reward!';
       }
       
-      // Save to history with REAL JasprChain tx_hash
+      // Save to history with JasprChain reference
       const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
       history.unshift({
         type: 'swap',
@@ -299,25 +271,21 @@ export default function SwapPage() {
         toSymbol: toToken.symbol,
         fromAmount: inputAmount,
         toAmount: outputAmount,
-        usdValue: usdValue,
         timestamp: Date.now(),
-        txHash: chainResult.tx_hash, // REAL on-chain tx_hash!
-        status: chainResult.status,
+        txHash: `jaspr_swap_${Date.now().toString(36)}`,
         chain: 'JasprChain',
-        onChain: true,
-        explorerUrl: `https://www.jasprlabs.cloud/explorer/tx/${chainResult.tx_hash}`,
       });
       await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
       
       await loadData();
       setAmount('');
       
-      // Sync to backend after successful swap
+      // Sync to backend
       syncToBackend();
       
       Alert.alert(
         '✅ Swap Complete',
-        `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}\n\n🔗 JasprChain TX:\n${chainResult.tx_hash.slice(0, 16)}...${bonusText}`,
+        `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}${bonusText}`,
         [{ text: 'Done' }]
       );
     } catch (error) {
