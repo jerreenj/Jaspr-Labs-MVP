@@ -284,22 +284,14 @@ export default function HomePage() {
                         </Text>
                         <Text style={styles.activityTime}>
                           {new Date(trade.timestamp).toLocaleDateString()}
-                          {trade.txHash && trade.onChain && (
-                            <Text style={styles.txHashText}> • 🔗 {trade.txHash.slice(0, 8)}...</Text>
-                          )}
                         </Text>
                       </View>
-                      <View style={styles.activityRight}>
-                        <Text style={[
-                          styles.activityAmount,
-                          { color: trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0' }
-                        ]}>
-                          {trade.type === 'buy' ? '-' : '+'}${(trade.usdValue || trade.usdAmount || 0).toFixed(2)}
-                        </Text>
-                        {trade.onChain && (
-                          <Text style={styles.onChainBadge}>On-Chain</Text>
-                        )}
-                      </View>
+                      <Text style={[
+                        styles.activityAmount,
+                        { color: trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0' }
+                      ]}>
+                        {trade.type === 'buy' ? '-' : '+'}${(trade.usdValue || trade.usdAmount || 0).toFixed(2)}
+                      </Text>
                     </View>
                   ))}
                 </View>
