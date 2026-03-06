@@ -1,181 +1,189 @@
 <analysis>
-
 <original_problem_statement>
-The user wants to build a complete, working MVP+POC mobile app called JASPR. It should function as a crypto wallet, markets, and trading app, built with React Native and Expo in JavaScript.
+The user wants to build a complete, working MVP+POC mobile app called JASPR. It should function as a crypto wallet, markets, and trading app.
 
-PRODUCT REQUIREMENTS:
+The most recent and critical request is to migrate the **entire exchange functionality** (trading, swapping, history) to be on top of the user's custom blockchain, **JasprChain**. All transactions should be executed on-chain, and the resulting transaction hash must be stored and displayed on the dashboard.
+
+PRODUCT REQUIREMENTS (Original):
 - **Platform:** React Native + Expo, JavaScript ONLY.
-- **Authentication:** A working Google OAuth flow via Supabase. A Quick Start demo mode is also required.
-- **Core Features:**
-    - **Home:** A dashboard showing portfolio value, holdings, and purchase cost/PnL for each asset.
-    - **Trade (formerly Markets):** Display a list of top 25 cryptocurrencies with a professional, real-time candlestick chart (like TradingView) for each.
-    - **Swap:** A screen for token-to-token swaps, supporting all 25+ available tokens.
-    - **Wallet:** A self-custodial model where the wallet starts empty. It should display balances and have Deposit/Withdraw functionality, with a placeholder for connecting to MetaMask.
-    - **History:** A screen showing a log of all transactions.
-- **Onboarding & Demo:** New users get a demo balance of 0,000 in MockUSDC via a Quick Start option. A trade rewards system should give users a bonus for their first 10 trades.
-- **UI/UX:** A professional, polished dark-mode UI with a strict color palette of **Black, White, Green (positive), and Red (negative)**. The app should use a professional font (Inter). The landing page should be visually engaging and fill the screen without wasted space. The tab navigation is: Home, Trade, Swap, Wallet.
+- **Core Features:** Home (Portfolio), Trade (Top 25 cryptos with candlestick charts), Swap (token-to-token), Wallet (self-custodial), History (transaction log).
+- **Authentication:** Originally Google OAuth via Supabase, now migrated to a custom MongoDB backend. A Quick Start demo mode is also required.
+- **Onboarding:** Demo mode gives a starting balance.
+- **UI/UX:** A professional, polished dark-mode UI (Black, White, Green, Red) with the 'Inter' font.
 </original_problem_statement>
 
-**User's preferred language**: English. The user is very direct, uses slang, and is highly focused on visual UI/UX details. The next agent must be direct, respond to visual feedback precisely, and confirm changes with screenshots.
+**User's preferred language**: English. The user is direct, uses slang (e.g., get this shit done), and wants immediate results. The next agent should be direct, confirm understanding, and execute quickly.
 
 **what currently exists?**
-A highly polished and feature-rich React Native/Expo application that functions as a high-fidelity prototype.
-- **Frontend:** The app uses a 4-tab layout (Home, Trade, Swap, Wallet). It features a strict dark theme (black, white, green, red) and uses the 'Inter' professional font.
-- **Core Functionality (Simulated):**
-    - **Authentication:** Google Auth flow via Supabase is implemented but unverified on a real device. Quick Start demo mode is fully functional and uses  for mobile-safe wallet generation. Supabase credentials are configured in the  file.
-    - **Landing Page:** A redesigned, visually appealing landing page with the Jaspr Labs brand, featuring 3 animated cards that fill the screen.
-    - **Trading:** The  screen features a professional-looking candlestick chart for price visualization, with a timeframe selector. Trading is simulated but functional.
-    - **Swapping:** The  screen allows for cross-token swaps between any of the 25+ supported tokens via a token-picker modal.
-    - **Portfolio:** The  screen displays the user's portfolio, including the purchase cost and unrealized P/L for each asset.
-    - **Wallet:** Implements a self-custodial model, starting with a /bin/bash balance. It includes a Deposit from Exchange button that opens a MetaMask connection placeholder modal.
-- **Backend/Blockchain:** All on-chain functionality is simulated on the frontend within the  and . No backend or smart contracts are currently in use.
+The project is a full-stack application with a React Native/Expo frontend and a FastAPI/MongoDB backend.
+
+- **Backend:** A FastAPI server () uses MongoDB to persist user data. It has endpoints for:
+    - Account creation/sync for the Quick Start mode.
+    - A waitlist to collect emails from users who sign in with Google.
+- **Frontend:** A highly polished 4-tab mobile app (Home, Trade, Swap, Wallet).
+- **Authentication:**
+    - **Google Auth:** Supabase has been completely removed. The app now uses  to handle Google login directly. On successful login, the user's email is stored in the  collection in MongoDB.
+    - **Quick Start:** This creates a persistent user account backed by the MongoDB database.
+- **Blockchain Integration (Hybrid State):**
+    - The app is partially migrated to the user's custom **JasprChain** ().
+    - **Working:** Wallet creation () and balance checks () are integrated with the live JasprChain API. New wallets are created on-chain.
+    - **NOT Working / In Progress:** Trading and swapping are still **simulated locally**. The logic to send real transactions to the JasprChain API has been started but is not complete.
 
 **Last working item**:
-    - Last item agent was working: Iteratively redesigning the landing page () to meet the user's specific aesthetic requirements. The user was very unhappy with empty black space and wanted the content to fill the screen in a balanced, professional way. The agent went through several versions, adjusting component sizes and layout flex properties.
-    - Status: COMPLETED (The final version shown in Msg 500 was deemed balanced and clean by the agent, seemingly satisfying the user's feedback from Msg 493).
-    - Agent Testing Done: Y (Visually confirmed with )
-    - Which testing method agent to use? NA
+    - Last item agent was working: Migrating the entire exchange functionality to JasprChain, as requested in message #623. The agent had begun modifying  to replace the simulated trade logic with a real API call to the JasprChain  endpoint.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? manual testing by curl
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: Verify Google OAuth on a Real Device (P0)
-  - Issue 2: Fix Search Bar Color in Trade Screen (P1)
-  - Issue 3: Unreliable Profit/Loss (P/L) Calculation on Home Screen (P1)
+  - Issue 1: Complete JasprChain Migration for Trading and Swapping (P0)
+  - Issue 2: JasprChain Testnet Wallets Have Zero Balance (P0 - BLOCKER)
+  - Issue 3: Verify Google OAuth on a Real Device (P1)
   
   Issues Detail:
   - Issue 1: 
-     - Description: The Google Authentication flow has been implemented in  and the user has configured the OAuth secret in their Supabase dashboard. However, all testing has been done via the web preview, which cannot handle the OAuth redirect flow correctly. It has not been confirmed to work on a real mobile device via Expo Go.
+     - Description: The core user request is to make all trading and swapping execute as real on-chain transactions on JasprChain. The transaction hash should be recorded and displayed in the app's history. The agent was in the middle of implementing this for the  screen.
      - Next debug checklist:
-        1. Instruct the user to scan the Expo Go QR code and test the Continue with Google button on their physical device.
-        2. If it fails, ask the user for the exact error message or behavior.
-        3. Check  or Xcode console logs for more detailed error information related to the auth flow.
-        4. Verify the redirect URI configured in Supabase and the Google Cloud Console matches the one generated by  (e.g., ).
-     - Why fix this issue and what will be achieved with the fix? This is a core product requirement and the final step to enabling real, persistent user accounts.
+        1. Resume work in  inside the  function.
+        2. Replace the local state updates and  with an API call to the JasprChain  endpoint.
+        3. The user's account for trading is simulated (USDC). A real on-chain trade would likely involve a swap contract or atomic swap which the provided JasprChain API does not seem to support ( only sends JASPR). The agent must clarify this with the user. How can one buy BTC with JASPR if the only transaction type is a simple transfer?
+        4. Modify  to store the returned  in the transaction history object.
+        5. Repeat the process for .
+        6. Update the transaction history display on the  screen to show the .
+     - Why fix this issue and what will be achieved with the fix? This is the user's primary goal and will transition the app from a simulation to a real, on-chain application.
+     - Status:  IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: Issue 2: JasprChain Testnet Wallets Have Zero Balance
+
+  - Issue 2: 
+     - Description: The agent discovered in message #606 that the JasprChain testnet has been updated. New wallets created via  now have a **balance of 0 JASPR**. Previously, they were funded with 10,000 JASPR. There is no visible faucet API endpoint. This is a critical blocker because no on-chain transactions can be sent without funds.
+     - Next debug checklist:
+        1. **IMMEDIATELY** inform the user that new wallets have 0 balance and ask how to get testnet funds.
+        2. Ask if there is a new faucet URL or if they can manually send funds to the agent's test wallet.
+        3. Implement a UI check to disable the Withdraw, Trade, and Swap buttons if the JasprChain balance is 0, and show an explanatory message.
+     - Why fix this issue and what will be achieved with the fix? Without funds, the core task of on-chain migration (Issue 1) cannot be completed or tested. This unblocks all future blockchain work.
+     - Status:  BLOCKED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None. This issue blocks others.
+
+  - Issue 3: 
+     - Description: The Google Authentication flow has been implemented but has never been confirmed by the user to work on a real mobile device via Expo Go. The agent has configured the client IDs and redirect URIs, but this remains a critical unverified feature.
+     - Next debug checklist:
+        1. Ask the user to test the Continue with Google button on their physical device using Expo Go.
+        2. Remind them of the required redirect URI they need to have configured in their Google Cloud Console: 
+     - Why fix this issue and what will be achieved with the fix? This validates a core authentication path and the email collection feature.
      - Status:  USER VERIFICATION PENDING
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? Frontend
      - Blocked on other issue: None
 
-  - Issue 2: 
-     - Description: In message #413, the user reported: there is still the old colour formatting the search bar in the trade section !. The agent inspected the file () but did not make a change, so the issue is likely still present.
-     - Next debug checklist:
-        1. View .
-        2. Locate the  component used for the search bar.
-        3. Inspect its  prop () and the container ().
-        4. Ensure the , , and  properties align with the new dark theme (e.g., , , ).
-        5. Apply the necessary style changes.
-     - Why fix this issue and what will be achieved with the fix? To ensure a consistent, professional UI and address direct user feedback.
-     - Status:  NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Frontend (with screenshot_tool)
-     - Blocked on other issue: None
-
-  - Issue 3: 
-     - Description: When verifying the Purchase Cost feature, the agent noted (in Msg 409) that the P/L percentage showed -100% because the token's current price hadn't loaded yet when the calculation was performed. This makes the P/L display unreliable on the initial load of the home screen.
-     - Next debug checklist:
-        1. View .
-        2. In the  function, locate where prices are fetched and where holdings are processed.
-        3. Ensure that the P/L calculation in the  component only runs *after* the current prices for all held assets have been successfully fetched.
-        4. Consider adding a loading state (e.g., show '...' for P/L) until prices are available.
-        5. Modify the  mapping to pass a valid price or a  value, and handle the  case in .
-     - Why fix this issue and what will be achieved with the fix? It will make the P/L feature accurate and prevent user confusion from seeing incorrect data.
-     - Status:  NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on other issue: None
-
 **In progress Task List**:
-  There are no tasks currently in progress. The last task was completed.
+  - Task 1: Migrate  and  to use JasprChain API (P0)
+ 
+ Task Detail:
+  - Task 1: 
+     - Where to resume: In , inside the  function (around line 480). The agent needs to replace the simulated logic with a call to the JasprChain API.
+     - What will be achieved with this? The app's trading and swapping will be performed on the real JasprChain testnet instead of being simulated locally.
+     - Status:  BLOCKED
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: Issue #2 - new wallets have 0 balance, so transactions cannot be sent.
 
 **Upcoming and Future Tasks**
 Upcoming Tasks:
-- **P1: Real On-Chain Transactions:** This is the largest remaining task from the original PRD. The entire app currently uses simulated transactions. The next major step is to integrate  to connect to a real blockchain (e.g., Base Sepolia), deploy the Solidity smart contracts from , and replace the simulated logic in  with real contract calls for swaps, trades, and withdrawals.
+- **P1: Display Transaction Hashes**: Update the Recent Activity component on the  screen to display the  returned by the JasprChain API for each transaction.
+- **P2: Build Waitlist Viewer**: Create a simple admin UI (or a new screen) to display the list of emails collected in the  collection in MongoDB.
 
 **Completed work in this session**
-- **UI/UX Overhaul & Theming:**
-  - Replaced the entire app's color scheme with a strict Black, White, Green, and Red palette to match the user's request for a Bybit/Coinbase dark mode look.
-  - Removed all  components in favor of solid black backgrounds.
-  - Integrated and applied the professional 'Inter' font across all screens for headings and key text.
-  - Redesigned the landing page () multiple times to create a visually appealing, space-efficient layout with 3 feature cards and a Jaspr Labs title.
-  - Renamed the Markets tab to Trade.
-
-- **Feature Implementation & Upgrades:**
-  - **Professional Trading Chart:** Replaced the basic line chart in  with a candlestick chart, timeframe selector, and 24h stats.
-  - **Full Token Swaps:** Reworked  to allow swapping between any of the 25+ tokens, replacing the previous hardcoded pairs with a dynamic token selector modal.
-  - **Purchase Cost Tracking:** Implemented a system to track the cost basis of token purchases in  and display the cost and a P/L percentage on the  screen.
-  - **Self-Custodial Wallet Model:** Refactored  to start with a /bin/bash balance and added a Deposit from Exchange flow with a MetaMask placeholder modal.
-  - **Token Logos:** Added real token logos to the Home and Wallet screens, in addition to the Trade screen.
-
-- **Bug Fixes & Mobile Compatibility:**
-  - ** Crash:** Fixed a critical mobile crash by replacing the  wallet creation on startup with  in .
-  - ** Crash:** Fixed another mobile-specific crash by replacing all instances of  in API calls with a manual  polyfill.
-  - **Logout Functionality:** Fixed the logout button in  and  to correctly redirect the user to the auth screen () instead of the landing page ().
-  - **API Error Handling:** Improved  blocks around  calls in , , and  to be more robust against network errors.
+- **Full Backend Migration:**
+  - Replaced ephemeral  with a persistent **MongoDB backend** using FastAPI to store user accounts, balances, and transaction history.
+- **Authentication Overhaul:**
+  - **Completely removed Supabase** from the project.
+  - Implemented direct **Google OAuth** using , which now saves user emails to a  collection in the MongoDB database.
+- **JasprChain Migration (Partial):**
+  - Integrated the live JasprChain API ().
+  - Wallet creation and balance fetching are now performed on the **real JasprChain testnet**.
+  - Updated the Wallet UI to display the on-chain JasprChain address and balance.
+- **Bug Fixes & UX Improvements:**
+  - Fixed account data resetting on app refresh by correctly persisting and loading the wallet from .
+  - Removed the pull-to-refresh functionality from the Home and Markets screens for a more native app feel.
+  - Fixed a critical  crash related to React Navigation dependencies.
+  - Fixed numerous syntax errors and linting issues.
+- **Deployment Preparation:**
+  - Resolved multiple deployment-blocking issues, including removing , configuring  and  for EAS Build, and handling potential issues with the  dependency by making it optional.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 - **Frontend:** React Native, Expo, 
-- **State Management:** React Context API (), 
-- **UI:** Custom components with a strict dark theme.  has been replaced with a custom candlestick chart implementation.
-- **Fonts:**  for professional typography.
-- **Authentication:**  for Google OAuth, Supabase client.
-- **Mobile-Specific Fixes:**  for safe random value generation, manual  for fetch timeouts.
+- **Backend:** Python, FastAPI
+- **Database:** MongoDB
+- **State Management:** React Context API,  for session persistence.
+- **Authentication:**  for Google OAuth.
+- **Blockchain:** **Custom JasprChain API** () for wallet creation, balance checks, and (soon) transactions. The  library is present but conditionally imported and not essential for core functionality.
 
 **key DB schema**
-- No database is currently in use. All state is simulated on the client and stored in .
+- **Database:**  (or as defined in )
+  - **accounts:**  - Stores data for Quick Start users.
+  - **waitlist:**  - Stores emails from Google Sign-In.
 
 **All files of reference**
-- : Heavily modified to create the current landing page design.
-- : Contains the Google Auth logic that needs to be tested on a device. Also contains the mobile-safe Quick Start wallet generation.
-- : Updated to display purchase cost and P/L.
-- : Completely rewritten to include the new candlestick chart.
-- : Completely rewritten to support cross-token swaps.
-- : Updated for the self-custodial model.
-- : Contains the search bar that needs a color fix.
-- : The root layout, which now loads the  font and the  polyfill.
+- : The core of the new persistent backend.
+- : Completely rewritten to remove Supabase and use direct Google Auth with the MongoDB backend. Manages wallet creation on JasprChain.
+- : Rewritten to use the JasprChain API for displaying the address and balance.
+- : **Currently being modified** to integrate on-chain trades.
+- : Needs to be modified next for on-chain swaps.
+- : Displays the portfolio and transaction history.
+- : Contains vital configuration for EAS Build and Google OAuth.
+- : Contains the Google Client ID.
+- : Contains the MongoDB connection string and database name.
 
 **Critical Info for New Agent**
-- **Test Google Auth on a Real Device:** The top priority is verifying the Google Auth flow. You **must** guide the user to test this on their phone using the Expo Go app. The web preview will not work. Be prepared to debug potential mobile-specific issues.
-- **User is Highly UI/UX Sensitive:** The user has provided very specific and iterative feedback on visual elements, especially spacing, alignment, and colors. Pay close attention to visual details and be prepared to make small, precise adjustments.
-- **Mobile-First Bug Fixes:** The agent has already fixed two critical mobile-only crashes ( and ). Be mindful that the web preview can be deceptive; prioritize functionality on mobile.
-- **App is a High-Fidelity Simulation:** Despite the professional UI, all trading, swapping, and balance changes are simulated on the client side. The next major step will be to connect this to a real blockchain.
+- **TOP PRIORITY:** The entire exchange (trading, swaps) must be migrated to the live JasprChain. You will resume this work in .
+- **CRITICAL BLOCKER:** The JasprChain testnet no longer automatically funds new wallets. They have a 0 balance. You **cannot** test or complete the migration without funds. You must immediately ask the user how to get testnet JASPR tokens.
+- **CONFIRMATION NEEDED:** The logic for an on-chain trade or swap is unclear. The JasprChain API only seems to have a simple  endpoint. Clarify with the user how buying/selling a token like BTC should work on-chain. Does it involve a smart contract? Or is the expectation that all trades are against a stablecoin like MockUSDC and you just need to record the transaction on JasprChain?
+- **UNVERIFIED FEATURE:** Google Auth has not been tested by the user on a real mobile device. This is a recurring point that needs final validation.
+
+**documents created in this job**
+- 
+-  (for an abandoned Vercel deployment attempt)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. **(LATEST) Msg 493:** User complained that the feature cards on the landing page are now too fucking small. (Status: ADDRESSED in last agent action).
-2. **Msg 482:** User complained the feature cards were too big and hiding the Jaspr Labs title. (Status: ADDRESSED).
-3. **Msg 471:** User requested to remove the MetaMask Ready card from the landing page, leaving only 3. (Status: COMPLETED).
-4. **Msg 460:** User was extremely unhappy with empty black space on the landing page, calling it disgusting and ugly. (Status: ADDRESSED).
-5. **Msg 413:** User reported multiple issues: bad landing page space, home page padding, API errors on mobile, and wrong search bar color. (Status: Mostly ADDRESSED, except for search bar color).
-6. **Msg 372:** User requested purchase cost tracking on the home page and complained again about landing page alignment. (Status: COMPLETED).
-7. **Msg 337:** User reported issues with landing page alignment, a broken logout button, and text on the auth page. (Status: COMPLETED).
-8. **Msg 304:** User provided screenshots of a mobile error () and requested landing page text changes. (Status: COMPLETED).
-9. **Msg 277:** User reported the app was not opening on mobile and requested a landing page redesign. (Status: COMPLETED).
-10. **Msg 259:** User reported a Google Auth error (missing OAuth secret) and requested a text change on the landing page. (Status: COMPLETED, Auth now pending user verification).
+1.  **(LATEST) Msg 623:** User wants the *entire* exchange (trading, swaps) on JasprChain, with real transaction hashes shown on the dashboard. (Status: IN PROGRESS).
+2.  **Msg 614:** User is impatient and wants the current task finished. (Status: ADDRESSED, agent is working on it).
+3.  **Msg 603:** User asked why transactions aren't showing on the dashboard. (Status: ADDRESSED, agent found the root cause - simulated trades were showing, but on-chain tx weren't happening due to 0 balance).
+4.  **Msg 592:** User reported a syntax error crash. (Status: COMPLETED, agent fixed it).
+5.  **Msg 543:** User provided the correct, live URL for the JasprChain API: . (Status: COMPLETED, agent integrated it).
+6.  **Msg 538:** User asked why transactions aren't uploading to the testnet and how to deploy. (Status: ADDRESSED, agent discovered the API URL was wrong).
+7.  **Msg 511:** User reported the wallet is crashing and asked if transactions are real-time on JasprChain. (Status: COMPLETED, agent fixed crash and began real integration).
+8.  **Msg 482:** User reported a  crash. (Status: COMPLETED, agent fixed dependency issues).
+9.  **Msg 457:** User said get it done. (Status: ADDRESSED).
+10. **Msg 426:** User provided the migration prompt to move from Base Sepolia to JasprChain. (Status: IN PROGRESS).
 
 **Project Health Check:**
-- **Polished Demo:** The application is visually impressive and functionally rich as an interactive prototype.
-- **Mocked:** All blockchain and financial operations are mocked/simulated on the client side.
-- **Broken:** The Google Authentication flow remains unverified and is potentially non-functional on a real device.
+- **Broken:** On-chain transactions are broken due to the JasprChain testnet providing 0-balance wallets.
+- **Mocked:** Trading and Swapping are still mocked locally, pending migration to the JasprChain API.
+- **Hybrid:** The application is in a hybrid state. Wallet management is connected to a real blockchain, but the core exchange features are still simulated.
 
 **3rd Party Integrations**
-- **Supabase:** Used for Authentication. Requires a User API Key ( key is configured in ). Google Provider must be enabled with correct credentials in the Supabase dashboard.
-- **CoinGecko API:** Public API used for live crypto price data, chart data, and token logos.
-- **Google OAuth:** The intended authentication method, configured via  and Supabase. Requires user configuration in their Google Cloud and Supabase dashboards.
-- **Google Fonts:**  is used to load the Inter font family.
+- **JasprChain API:** A custom REST API for the user's blockchain. Live at .
+- **CoinGecko API:** Public API used for live crypto price data and token logos.
+- **Google OAuth:** Used for authentication. Requires a User-provided Client ID configured in  and the Google Cloud Console.
+- **MongoDB:** Used as the primary database for account persistence and waitlist storage.
 
 **Testing status**
-  - Testing agent used after significant changes: NO
+  - Testing agent used after significant changes: YES (but before the most recent JasprChain work).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None.
+  - Test files created: None.
+  - Known regressions: JasprChain testnet no longer provides an initial balance.
 
 **Credentials to test flow:**
-- Use the Quick Start button on the auth screen () for full demo access.
-- Google Auth testing requires the user to use the Expo Go app on a physical device.
+- Use the Quick Start button on the auth screen () for demo access. This will create a real wallet on JasprChain and a corresponding account in the MongoDB backend.
+- Google Auth testing requires user cooperation to test on a physical device with Expo Go.
 
 **What agent forgot to execute**
-- In message #413, the user explicitly mentioned that the search bar in the Trade section retained the old color formatting. The agent looked at the file () in message #421 but concluded the styles were fine and did not make a change. This user-reported issue was missed and needs to be addressed.
-
+- The agent has not yet addressed the critical blocker that new JasprChain wallets have a 0 balance. It is impossible to proceed with the user's main request (on-chain trading) until this is resolved. The agent must bring this to the user's attention.
 </analysis>
