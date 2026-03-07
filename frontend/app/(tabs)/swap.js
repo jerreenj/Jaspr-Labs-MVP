@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 
 // API base URL for syncing
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
+const JASPR_CHAIN_API = 'https://jasprchain.preview.emergentagent.com/api';
 
 // Sync account data to backend
 const syncToBackend = async () => {

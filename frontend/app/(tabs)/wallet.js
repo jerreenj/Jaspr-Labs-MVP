@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 
 // JasprChain API - LIVE testnet
-const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
+const JASPR_CHAIN_API = 'https://jasprchain.preview.emergentagent.com/api';
 
 // Create wallet using JasprChain API
 const createJasprWallet = async () => {
