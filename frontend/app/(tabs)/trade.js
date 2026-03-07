@@ -44,7 +44,53 @@ const executeTradeOnChain = async (walletAddress, type, symbol, usdAmount) => {
       };
     }
     
-    throw new Error('Trade failed');
+    // Check if wallet doesn't exist - create new one
+    const errorData = await response.json().catch(() => ({}));
+    if (errorData.detail && errorData.detail.includes('wallet not found')) {
+      console.log('[JASPR] Wallet not found, creating new wallet...');
+      
+      // Create new wallet on JasprChain
+      const walletRes = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (walletRes.ok) {
+        const walletData = await walletRes.json();
+        const newAddress = walletData.address;
+        console.log('[JASPR] New wallet created:', newAddress);
+        
+        // Save new wallet address
+        await AsyncStorage.setItem('wallet_address', newAddress);
+        
+        // Retry trade with new wallet
+        const retryRes = await fetch(`${JASPR_CHAIN_API}/transactions/trade`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender: newAddress,
+            recipient: JASPR_TREASURY,
+            amount: jasprAmount,
+            trade_type: type.toLowerCase(),
+            symbol: symbol
+          }),
+        });
+        
+        if (retryRes.ok) {
+          const retryData = await retryRes.json();
+          console.log('[JASPR] ✅ TRADE RECORDED ON-CHAIN (new wallet):', retryData.tx_hash);
+          return { 
+            success: true, 
+            tx_hash: retryData.tx_hash, 
+            status: 'confirmed',
+            onChain: true,
+            newWallet: newAddress
+          };
+        }
+      }
+    }
+    
+    throw new Error(errorData.detail || 'Trade failed');
   } catch (error) {
     console.log('[JASPR] Trade recording failed:', error.message);
     return { success: false, tx_hash: null, error: error.message };
