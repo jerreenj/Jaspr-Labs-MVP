@@ -42,10 +42,17 @@ export default function HomePage() {
   const [swapCount, setSwapCount] = useState(0);
   const [recentTrades, setRecentTrades] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const lastLoadTime = useRef(0);
 
   useFocusEffect(
     useCallback(() => {
-      loadUserData();
+      // Prevent rapid reloads - min 1 second between loads
+      const now = Date.now();
+      if (now - lastLoadTime.current > 1000) {
+        lastLoadTime.current = now;
+        loadUserData();
+      }
     }, [])
   );
 
