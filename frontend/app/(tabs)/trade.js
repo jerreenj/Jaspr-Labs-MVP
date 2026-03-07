@@ -11,35 +11,42 @@ const { width } = Dimensions.get('window');
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const JASPR_CHAIN_API = 'https://layer-one-rust.preview.emergentagent.com/api';
 
-// Treasury wallet for trading operations - receives/sends JASPR for trades
+// Treasury wallet for trading operations
 const JASPR_TREASURY = 'jaspr1treasury000000000000000000000000000000000';
 
-// Record transaction on JasprChain and get tx_hash
-const recordOnChain = async (walletAddress, type, symbol, amount, price) => {
+// Execute REAL trade on JasprChain - returns tx_hash
+const executeTradeOnChain = async (walletAddress, type, symbol, usdAmount) => {
   try {
-    // Execute real blockchain transfer to record the trade
+    // Transfer JASPR to record the trade (1 JASPR = $1)
+    const jasprAmount = Math.max(1, Math.floor(usdAmount));
+    
+    console.log(`[JASPR] Recording ${type.toUpperCase()} ${symbol} for $${usdAmount} on-chain`);
+    
     const response = await fetch(`${JASPR_CHAIN_API}/transactions/transfer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sender: walletAddress,
         recipient: JASPR_TREASURY,
-        amount: 1 // Minimum transfer to record on-chain
+        amount: jasprAmount
       }),
     });
     
     if (response.ok) {
       const data = await response.json();
-      console.log('[JASPR] Transaction recorded:', data.tx_hash);
-      return { success: true, tx_hash: data.tx_hash, status: 'confirmed' };
+      console.log('[JASPR] ✅ TRADE RECORDED ON-CHAIN:', data.tx_hash);
+      return { 
+        success: true, 
+        tx_hash: data.tx_hash, 
+        status: 'confirmed',
+        onChain: true
+      };
     }
     
-    // Fallback hash
-    const localHash = `jaspr_tx_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-    return { success: true, tx_hash: localHash, status: 'recorded' };
+    throw new Error('Transfer failed');
   } catch (error) {
-    const offlineHash = `jaspr_${type}_${symbol}_${Date.now().toString(36)}`;
-    return { success: true, tx_hash: offlineHash, status: 'pending_sync' };
+    console.log('[JASPR] Trade recording failed:', error.message);
+    return { success: false, tx_hash: null, error: error.message };
   }
 };
 
