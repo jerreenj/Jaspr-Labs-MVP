@@ -12,7 +12,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 // API base URLs
 const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const JASPR_CHAIN_API = 'https://jasprchain.preview.emergentagent.com/api';
+const JASPR_CHAIN_API = 'https://www.jasprlabs.cloud/api';
 
 // Google OAuth Client IDs
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
