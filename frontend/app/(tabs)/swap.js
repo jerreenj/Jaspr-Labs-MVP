@@ -302,11 +302,21 @@ export default function SwapPage() {
     setLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      const walletAddress = await AsyncStorage.getItem('wallet_address');
       const outputAmount = calculateOutput();
+      const fromPrice = prices[fromToken.symbol] || 1;
+      const usdValue = inputAmount * fromPrice;
       
-      // Update balances
+      // Execute REAL swap on JasprChain FIRST
+      const chainResult = await executeSwapOnChain(walletAddress, fromToken.symbol, toToken.symbol, usdValue);
+      
+      if (!chainResult.success) {
+        Alert.alert('Swap Failed', `Could not record on JasprChain: ${chainResult.error}`);
+        setLoading(false);
+        return;
+      }
+      
+      // Swap confirmed on-chain, now update local state
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
@@ -347,7 +357,7 @@ export default function SwapPage() {
         bonusText = '\n\n🎁 +$5 Trade Reward!';
       }
       
-      // Save to history with JasprChain reference
+      // Save to history with REAL JasprChain tx_hash
       const history = JSON.parse(await AsyncStorage.getItem('tx_history') || '[]');
       history.unshift({
         type: 'swap',
@@ -355,9 +365,12 @@ export default function SwapPage() {
         toSymbol: toToken.symbol,
         fromAmount: inputAmount,
         toAmount: outputAmount,
+        usdValue,
         timestamp: Date.now(),
-        txHash: `jaspr_swap_${Date.now().toString(36)}`,
+        txHash: chainResult.tx_hash,
+        status: 'confirmed',
         chain: 'JasprChain',
+        onChain: true,
       });
       await AsyncStorage.setItem('tx_history', JSON.stringify(history.slice(0, 50)));
       
@@ -369,7 +382,7 @@ export default function SwapPage() {
       
       Alert.alert(
         '✅ Swap Complete',
-        `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}${bonusText}`,
+        `Swapped ${inputAmount} ${fromToken.symbol}\n→ ${getOutputDisplay()} ${toToken.symbol}\nTX: ${chainResult.tx_hash.slice(0,16)}...${bonusText}`,
         [{ text: 'Done' }]
       );
     } catch (error) {
