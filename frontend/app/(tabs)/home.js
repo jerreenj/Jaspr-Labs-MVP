@@ -261,7 +261,7 @@ export default function HomePage() {
               </View>
             )}
 
-            {/* Recent Activity */}
+            {/* Recent Activity - REAL TRADES */}
             {recentTrades.length > 0 && (
               <>
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Recent Activity</Text>
@@ -280,17 +280,17 @@ export default function HomePage() {
                       </View>
                       <View style={styles.activityContent}>
                         <Text style={styles.activityTitle}>
-                          {trade.type === 'buy' ? 'Bought' : trade.type === 'sell' ? 'Sold' : 'Swapped'} {trade.symbol || `${trade.fromSymbol}→${trade.toSymbol}`}
+                          {trade.type === 'buy' ? 'BUY/LONG' : trade.type === 'sell' ? 'SELL/SHORT' : 'SWAP'} {trade.symbol || `${trade.fromSymbol}→${trade.toSymbol}`}
                         </Text>
                         <Text style={styles.activityTime}>
-                          {new Date(trade.timestamp).toLocaleDateString()}
+                          {new Date(trade.timestamp).toLocaleString()} {trade.onChain ? '• On-Chain ✓' : ''}
                         </Text>
                       </View>
                       <Text style={[
                         styles.activityAmount,
                         { color: trade.type === 'buy' ? '#00FFA3' : trade.type === 'sell' ? '#FF4444' : '#00FFF0' }
                       ]}>
-                        {trade.type === 'buy' ? '-' : '+'}${(trade.usdValue || trade.usdAmount || 0).toFixed(2)}
+                        ${(trade.usdValue || trade.usdAmount || 0).toFixed(0)}
                       </Text>
                     </View>
                   ))}
