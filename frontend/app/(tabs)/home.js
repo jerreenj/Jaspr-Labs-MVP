@@ -57,6 +57,9 @@ export default function HomePage() {
   );
 
   const loadUserData = useCallback(async () => {
+    if (isLoading) return; // Prevent concurrent loads
+    setIsLoading(true);
+    
     try {
       const demoBalance = await AsyncStorage.getItem('demo_balance');
       const usdcBalance = demoBalance ? parseFloat(demoBalance) : 10000;
@@ -72,9 +75,12 @@ export default function HomePage() {
       const count = await AsyncStorage.getItem('swap_count');
       setSwapCount(count ? parseInt(count) : 0);
       
+      // Load transaction history - show last 5 trades
       const history = await AsyncStorage.getItem('tx_history');
       const txHistory = history ? JSON.parse(history) : [];
-      setRecentTrades(txHistory.slice(0, 3));
+      if (txHistory.length > 0) {
+        setRecentTrades(txHistory.slice(0, 5));
+      }
       
       const tokenIds = ['ethereum', 'bitcoin', 'solana', 'binancecoin', 'ripple', 'cardano', 'dogecoin', 'avalanche-2'];
       
