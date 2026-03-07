@@ -137,8 +137,10 @@ export default function HomePage() {
       setHoldings(allHoldings);
     } catch (error) {
       console.error('Error loading user data:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [isLoading]);
 
   const handleLogout = async () => {
     setShowMenu(false);
