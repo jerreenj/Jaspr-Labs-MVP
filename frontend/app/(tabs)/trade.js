@@ -17,18 +17,19 @@ const JASPR_TREASURY = 'jaspr1treasury000000000000000000000000000000000';
 // Execute REAL trade on JasprChain - returns tx_hash
 const executeTradeOnChain = async (walletAddress, type, symbol, usdAmount) => {
   try {
-    // Transfer JASPR to record the trade (1 JASPR = $1)
     const jasprAmount = Math.max(1, Math.floor(usdAmount));
     
     console.log(`[JASPR] Recording ${type.toUpperCase()} ${symbol} for $${usdAmount} on-chain`);
     
-    const response = await fetch(`${JASPR_CHAIN_API}/transactions/transfer`, {
+    const response = await fetch(`${JASPR_CHAIN_API}/transactions/trade`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sender: walletAddress,
         recipient: JASPR_TREASURY,
-        amount: jasprAmount
+        amount: jasprAmount,
+        trade_type: type.toLowerCase(),  // 'buy' or 'sell'
+        symbol: symbol                    // 'BTC', 'ETH', etc
       }),
     });
     
@@ -43,7 +44,7 @@ const executeTradeOnChain = async (walletAddress, type, symbol, usdAmount) => {
       };
     }
     
-    throw new Error('Transfer failed');
+    throw new Error('Trade failed');
   } catch (error) {
     console.log('[JASPR] Trade recording failed:', error.message);
     return { success: false, tx_hash: null, error: error.message };
