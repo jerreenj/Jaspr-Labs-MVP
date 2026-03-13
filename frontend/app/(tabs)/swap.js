@@ -286,9 +286,11 @@ export default function SwapPage() {
     try {
       const walletAddress = await AsyncStorage.getItem('wallet_address');
       const outputAmount = calculateOutput();
+      const fromPrice = prices[fromToken.symbol] || 1;
+      const usdValue = inputAmount * fromPrice; // Calculate USD value!
       
-      // Record on JasprChain FIRST
-      const chainResult = await recordSwapOnChain(walletAddress, fromToken.symbol, toToken.symbol, inputAmount, outputAmount);
+      // Record on JasprChain FIRST - send USD value, not token qty
+      const chainResult = await recordSwapOnChain(walletAddress, fromToken.symbol, toToken.symbol, usdValue, outputAmount);
       
       // Update local balances
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
