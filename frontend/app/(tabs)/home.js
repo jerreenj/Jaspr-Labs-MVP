@@ -648,3 +648,4 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
 });
+// logout fix
