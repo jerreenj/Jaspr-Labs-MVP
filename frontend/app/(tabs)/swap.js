@@ -566,6 +566,8 @@ const styles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'right',
     fontFamily: 'Inter_600SemiBold',
+    backgroundColor: 'transparent',
+    minWidth: 100,
   },
   outputAmount: {
     fontSize: 28,
