@@ -10,69 +10,69 @@ const API_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBL
 const JASPR_CHAIN_API = 'https://www.jasprlabs.cloud/api';
 const JASPR_TREASURY = 'jaspr1treasury000000000000000000000000000000000';
 
-// Record swap on JasprChain
-const recordSwapOnChain = async (walletAddress, fromSymbol, toSymbol, fromAmount, toAmount) => {
-  try {
-    const response = await fetch(`${JASPR_CHAIN_API}/transactions/trade`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sender: walletAddress,
-        recipient: JASPR_TREASURY,
-        amount: Math.max(1, Math.floor(fromAmount)),
-        trade_type: 'swap',
-        from_symbol: fromSymbol,
-        to_symbol: toSymbol
-      }),
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[JASPR] ✅ SWAP RECORDED ON-CHAIN:', data.tx_hash);
-      return { success: true, tx_hash: data.tx_hash };
-    }
-    
-    // Check if wallet doesn't exist - create new one
-    const errorData = await response.json().catch(() => ({}));
-    if (errorData.detail && errorData.detail.includes('wallet not found')) {
-      console.log('[JASPR] Wallet not found, creating new wallet...');
+// BULLETPROOF: Execute swap on JasprChain with retry & recovery
+const recordSwapOnChain = async (walletAddress, fromSymbol, toSymbol, usdAmount) => {
+  const jasprAmount = Math.max(1, Math.floor(usdAmount));
+  const MAX_RETRIES = 3;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`[JASPR] Swap attempt ${attempt}/${MAX_RETRIES}: ${fromSymbol}→${toSymbol} $${usdAmount}`);
       
-      const walletRes = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
+      const response = await fetch(`${JASPR_CHAIN_API}/transactions/trade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: walletAddress,
+          recipient: JASPR_TREASURY,
+          amount: jasprAmount,
+          trade_type: 'swap',
+          from_symbol: fromSymbol,
+          to_symbol: toSymbol
+        }),
       });
       
-      if (walletRes.ok) {
-        const walletData = await walletRes.json();
-        const newAddress = walletData.address;
-        await AsyncStorage.setItem('wallet_address', newAddress);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[JASPR] ✅ SWAP CONFIRMED ON-CHAIN:', data.tx_hash);
+        return { success: true, tx_hash: data.tx_hash, status: 'confirmed', onChain: true };
+      }
+      
+      // Handle wallet not found - create new wallet
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.detail && errorData.detail.includes('wallet not found')) {
+        console.log('[JASPR] Wallet not found, creating new wallet...');
         
-        // Retry with new wallet
-        const retryRes = await fetch(`${JASPR_CHAIN_API}/transactions/trade`, {
+        const walletRes = await fetch(`${JASPR_CHAIN_API}/wallets/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender: newAddress,
-            recipient: JASPR_TREASURY,
-            amount: Math.max(1, Math.floor(fromAmount)),
-            trade_type: 'swap',
-            from_symbol: fromSymbol,
-            to_symbol: toSymbol
-          }),
         });
         
-        if (retryRes.ok) {
-          const retryData = await retryRes.json();
-          return { success: true, tx_hash: retryData.tx_hash };
+        if (walletRes.ok) {
+          const walletData = await walletRes.json();
+          await AsyncStorage.setItem('wallet_address', walletData.address);
+          walletAddress = walletData.address;
+          console.log('[JASPR] New wallet created:', walletData.address);
+          continue; // Retry with new wallet
         }
       }
+      
+      // Other error - retry
+      console.log(`[JASPR] Attempt ${attempt} failed:`, errorData.detail || 'Unknown error');
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+      
+    } catch (error) {
+      console.log(`[JASPR] Attempt ${attempt} error:`, error.message);
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
     }
-    
-    return { success: false, tx_hash: `jaspr_swap_${Date.now().toString(36)}` };
-  } catch (error) {
-    console.log('[JASPR] Swap error:', error.message);
-    return { success: false, tx_hash: `jaspr_swap_${Date.now().toString(36)}` };
   }
+  
+  // All retries failed - DO NOT update local state
+  return { success: false, tx_hash: null, error: 'Swap failed after 3 attempts. Please try again.' };
 };
 
 // Sync account data to backend
