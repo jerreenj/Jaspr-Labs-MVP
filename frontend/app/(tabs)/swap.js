@@ -289,10 +289,21 @@ export default function SwapPage() {
       const fromPrice = prices[fromToken.symbol] || 1;
       const usdValue = inputAmount * fromPrice; // Calculate USD value!
       
-      // Record on JasprChain FIRST - send USD value, not token qty
-      const chainResult = await recordSwapOnChain(walletAddress, fromToken.symbol, toToken.symbol, usdValue, outputAmount);
+      // BULLETPROOF: Record on JasprChain FIRST - ONLY update local state if confirmed
+      const chainResult = await recordSwapOnChain(walletAddress, fromToken.symbol, toToken.symbol, usdValue);
       
-      // Update local balances
+      // STOP if blockchain failed - don't update local state
+      if (!chainResult.success) {
+        Alert.alert(
+          '❌ Swap Failed',
+          chainResult.error || 'Could not confirm swap on blockchain. Your balance is unchanged. Please try again.',
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
+        return;
+      }
+      
+      // ✅ Blockchain confirmed - NOW update local balances
       const storedHoldings = await AsyncStorage.getItem('token_holdings');
       const tokenHoldings = storedHoldings ? JSON.parse(storedHoldings) : {};
       
