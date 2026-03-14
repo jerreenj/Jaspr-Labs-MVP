@@ -666,6 +666,3 @@ const styles = StyleSheet.create({
   tokenOptionBalance: { fontSize: 14, fontWeight: '600', color: '#FFF' },
   tokenOptionPrice: { fontSize: 12, color: '#888', marginTop: 2 },
 });
-// Fix: swap sends USD value
-Fri Mar 13 17:08:03 UTC 2026
-// Force rebuild Sat Mar 14 03:05:40 UTC 2026
